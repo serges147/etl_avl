@@ -29,14 +29,33 @@ SOFTWARE.
 #include "unit_test_framework.h"
 
 #include "etl/intrusive_avl_tree.h"
+#include "etl/intrusive_links.h"
 
 namespace
 {
+  typedef etl::tree_link<1> link_tree;
+
+  struct Data : public link_tree
+  {
+    Data(int i_)
+      : i(i_)
+    {
+
+    }
+
+    int i;
+  };
+
   SUITE(test_intrusive_avl_tree)
   {
     //*************************************************************************
     TEST(test_constructor)
     {
+      etl::intrusive_avl_tree<Data, link_tree> tree;
+
+      CHECK(tree.empty());
+
+      CHECK_EQUAL(0U, tree.size());
     }
   }
 }

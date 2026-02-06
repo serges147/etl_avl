@@ -53,12 +53,29 @@ namespace etl
     // Node typedef.
     typedef TLink link_type;
 
+    //*************************************************************************
+    /// Checks if the tree is in the empty state.
+    //*************************************************************************
+    bool empty() const
+    {
+      return current_size == 0;
+    }
+
+    //*************************************************************************
+    /// Returns the number of elements.
+    //*************************************************************************
+    size_t size() const
+    {
+      return current_size;
+    }
+
   protected:
 
     //*************************************************************************
     /// Constructor
     //*************************************************************************
     intrusive_avl_tree_base()
+      : current_size(0)
     {
     }
 
@@ -68,6 +85,8 @@ namespace etl
     ~intrusive_avl_tree_base()
     {
     }
+
+    size_t current_size; ///< Counts the number of elements in the tree.
   };
 
   //***************************************************************************
