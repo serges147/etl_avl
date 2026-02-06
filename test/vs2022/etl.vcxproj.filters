@@ -369,6 +369,9 @@
     <ClInclude Include="..\..\include\etl\flat_multiset.h">
       <Filter>ETL\Containers</Filter>
     </ClInclude>
+    <ClInclude Include="..\..\include\etl\intrusive_avl_tree.h">
+      <Filter>ETL\Containers</Filter>
+    </ClInclude>
     <ClInclude Include="..\..\include\etl\intrusive_forward_list.h">
       <Filter>ETL\Containers</Filter>
     </ClInclude>
@@ -1838,6 +1841,9 @@
     <ClCompile Include="..\test_indirect_vector_external_buffer.cpp">
       <Filter>Tests\Containers</Filter>
     </ClCompile>
+    <ClCompile Include="..\test_intrusive_avl_tree.cpp">
+      <Filter>Tests\Containers</Filter>
+    </ClCompile>
     <ClCompile Include="..\test_intrusive_forward_list.cpp">
       <Filter>Tests\Containers</Filter>
     </ClCompile>
@@ -2014,6 +2020,9 @@
     </ClCompile>
     <ClCompile Include="..\test_fixed_sized_memory_block_allocator.cpp">
       <Filter>Tests\Containers</Filter>
+    </ClCompile>
+    <ClCompile Include="..\test_intrusive_avl_tree.cpp">
+      <Filter>Tests\Queues</Filter>
     </ClCompile>
     <ClCompile Include="..\test_intrusive_queue.cpp">
       <Filter>Tests\Queues</Filter>
@@ -2985,6 +2994,9 @@
       <Filter>Tests\Syntax Checks\Source</Filter>
     </ClCompile>
     <ClCompile Include="..\syntax_check\integral_limits.h.t.cpp">
+      <Filter>Tests\Syntax Checks\Source</Filter>
+    </ClCompile>
+    <ClCompile Include="..\syntax_check\intrusive_avl_tree.h.t.cpp">
       <Filter>Tests\Syntax Checks\Source</Filter>
     </ClCompile>
     <ClCompile Include="..\syntax_check\intrusive_forward_list.h.t.cpp">
