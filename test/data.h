@@ -220,10 +220,13 @@ public:
 
   TestDataM& operator=(TestDataM&& other) noexcept
   {
-    value = std::move(other.value);
-    valid = true;
+    if (this != &other)
+    {
+      value = std::move(other.value);
+      valid = other.valid;
 
-    other.valid = false;
+      other.valid = false;
+    }
 
     return *this;
   }

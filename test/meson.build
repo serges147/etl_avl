@@ -134,6 +134,7 @@ etl_test_sources = files(
 	'test_indirect_vector_external_buffer.cpp',
 	'test_instance_count.cpp',
 	'test_integral_limits.cpp',
+	'test_intrusive_avl_tree.cpp',
 	'test_intrusive_forward_list.cpp',
 	'test_intrusive_links.cpp',
 	'test_intrusive_list.cpp',
