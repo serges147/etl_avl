@@ -59,7 +59,7 @@ namespace etl
     //*************************************************************************
     bool empty() const
     {
-      return get_root() == nullptr;
+      return get_root() == ETL_NULLPTR;
     }
 
     //*************************************************************************
@@ -122,7 +122,7 @@ namespace etl
   template <typename TValue, typename TLink>
   class intrusive_avl_tree : public etl::intrusive_avl_tree_base<TLink>
   {
-    using base = etl::intrusive_avl_tree_base<TLink>;
+    typedef etl::intrusive_avl_tree_base<TLink> base;
 
   public:
 
@@ -171,7 +171,7 @@ namespace etl
     {
       // Try to find existing node.
       Link* curr = root;
-      while (nullptr != curr)
+      while (ETL_NULLPTR != curr)
       {
         auto* const result = static_cast<Pointer*>(curr);
         const auto cmp = comparator(*result);
@@ -185,7 +185,7 @@ namespace etl
       }
 
       // Not found.
-      return nullptr;
+      return ETL_NULLPTR;
     }
 
     template <typename Comparator, typename Factory>
@@ -195,7 +195,7 @@ namespace etl
       bool isRight = false;
       TLink* curr = base::get_root();
       TLink* parent = base::get_origin();
-      while (nullptr != curr)
+      while (ETL_NULLPTR != curr)
       {
         auto* const result = static_cast<pointer>(curr);
         const auto cmp = comparator(*result);
@@ -212,10 +212,10 @@ namespace etl
 
       // Try to instantiate new node.
       auto* const result = factory();
-      if (nullptr == result)
+      if (ETL_NULLPTR == result)
       {
         // Failed (or rejected)! The tree was not modified.
-        return etl::make_pair(nullptr, false);
+        return etl::make_pair(ETL_NULLPTR, false);
       }
 
       // Link the new node.
