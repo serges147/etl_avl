@@ -35,6 +35,7 @@ SOFTWARE.
 #include "type_traits.h"
 #include "error_handler.h"
 #include "intrusive_links.h"
+#include "utility.h"
 
 #include <stddef.h>
 
@@ -58,7 +59,7 @@ namespace etl
     //*************************************************************************
     bool empty() const
     {
-      return current_size == 0;
+      return get_root() == nullptr;
     }
 
     //*************************************************************************
@@ -86,8 +87,30 @@ namespace etl
     {
     }
 
+    link_type* get_origin()
+    {
+      return &origin;
+    }
+
+    link_type* get_root()
+    {
+      return origin.etl_left;
+    }
+
+    const link_type* get_root() const
+    {
+      return origin.etl_left;
+    }
+
+    link_type*& get_root_ref()
+    {
+      return origin.etl_left;
+    }
+
+    link_type origin; ///< This is the origin link which left child points to the root link of the tree.
     size_t current_size; ///< Counts the number of elements in the tree.
-  };
+
+  };  // intrusive_avl_tree_base
 
   //***************************************************************************
   ///\ingroup intrusive_avl_tree
@@ -99,10 +122,9 @@ namespace etl
   template <typename TValue, typename TLink>
   class intrusive_avl_tree : public etl::intrusive_avl_tree_base<TLink>
   {
-  public:
+    using base = etl::intrusive_avl_tree_base<TLink>;
 
-    // Node typedef.
-    typedef typename etl::intrusive_avl_tree_base<TLink> link_type;
+  public:
 
     // STL style typedefs.
     typedef TValue            value_type;
@@ -120,12 +142,103 @@ namespace etl
     {
     }
 
+    template <typename Comparator>
+    pointer find(const Comparator& comparator)
+    {
+      return find_impl<pointer>(base::get_root(), comparator);
+    }
+
+    template <typename Comparator>
+    const_pointer find(const Comparator& comparator) const
+    {
+      return find_impl<const_pointer>(base::get_root(), comparator);
+    }
+
+    template <typename Comparator, typename Factory>
+    etl::pair<pointer, bool> find_or_create(const Comparator& comparator, const Factory& factory)
+    {
+      return find_or_create_impl(comparator, factory);
+    }
+
   private:
 
     // Disable copy construction and assignment.
     intrusive_avl_tree(const intrusive_avl_tree&);
     intrusive_avl_tree& operator = (const intrusive_avl_tree& rhs);
-  };
-}
+
+    template <typename Pointer, typename Link, typename Comparator>
+    static Pointer find_impl(Link* const root, const Comparator& comparator)
+    {
+      // Try to find existing node.
+      Link* curr = root;
+      while (nullptr != curr)
+      {
+        auto* const result = static_cast<Pointer*>(curr);
+        const auto cmp = comparator(*result);
+        if (0 == cmp)
+        {
+          // Found!
+          return result;
+        }
+        const bool isRight = cmp > 0;
+        curr = isRight ? curr->etl_right : curr->etl_left;
+      }
+
+      // Not found.
+      return nullptr;
+    }
+
+    template <typename Comparator, typename Factory>
+    etl::pair<pointer, bool> find_or_create_impl(const Comparator& comparator, const Factory& factory)
+    {
+      // Try to find existing node.
+      bool isRight = false;
+      TLink* curr = base::get_root();
+      TLink* parent = base::get_origin();
+      while (nullptr != curr)
+      {
+        auto* const result = static_cast<pointer>(curr);
+        const auto cmp = comparator(*result);
+        if (0 == cmp)
+        {
+          // Found! Tree was not modified.
+          return etl::make_pair(result, false);
+        }
+
+        parent = curr;
+        isRight = cmp > 0;
+        curr = isRight ? curr->etl_right : curr->etl_left;
+      }
+
+      // Try to instantiate new node.
+      auto* const result = factory();
+      if (nullptr == result)
+      {
+        // Failed (or rejected)! The tree was not modified.
+        return etl::make_pair(nullptr, false);
+      }
+
+      // Link the new node.
+      if (parent != base::get_origin())
+      {
+        TLink*& parent_child_ref = isRight ? parent->etl_right : parent->etl_left;
+        parent_child_ref = result;
+        result->etl_parent = parent;
+      }
+      else
+      {
+        base::get_root_ref() = result;
+        result->etl_parent = base::get_origin();
+      }
+
+      // TODO: Rebalance the tree.
+
+      // Successfully linked, so the tree was modified.
+      return etl::make_pair(result, true);
+    }
+
+  };  // intrusive_avl_tree
+
+}  // namespace etl
 
 #endif

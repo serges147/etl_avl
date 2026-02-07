@@ -35,13 +35,15 @@ namespace
 {
   typedef etl::tree_link<1> link_tree;
 
-  struct Data : public link_tree
+  struct Data : link_tree
   {
     Data(int i_)
       : i(i_)
     {
 
     }
+
+    static int always_less(const Data&) { return -1; }
 
     int i;
   };
@@ -51,11 +53,28 @@ namespace
     //*************************************************************************
     TEST(test_constructor)
     {
+      const etl::intrusive_avl_tree<Data, link_tree> tree;
+
+      CHECK(tree.empty());
+      CHECK_EQUAL(0U, tree.size());
+    }
+
+    //*************************************************************************
+    TEST(test_empty)
+    {
       etl::intrusive_avl_tree<Data, link_tree> tree;
+
+      Data data1(1);
 
       CHECK(tree.empty());
 
-      CHECK_EQUAL(0U, tree.size());
+      const auto ptr_modified = tree.find_or_create(
+        Data::always_less, [&data1] { return &data1; });
+
+      CHECK_EQUAL(&data1, ptr_modified.first);
+      CHECK(ptr_modified.second);
+
+      CHECK(!tree.empty());
     }
   }
 }
