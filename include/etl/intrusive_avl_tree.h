@@ -173,8 +173,8 @@ namespace etl
       Link* curr = root;
       while (ETL_NULLPTR != curr)
       {
-        auto* const result = static_cast<Pointer*>(curr);
-        const auto cmp = comparator(*result);
+        auto* const result = static_cast<Pointer>(curr);
+        const int cmp = comparator(*result);
         if (0 == cmp)
         {
           // Found!
@@ -198,7 +198,7 @@ namespace etl
       while (ETL_NULLPTR != curr)
       {
         auto* const result = static_cast<pointer>(curr);
-        const auto cmp = comparator(*result);
+        const int cmp = comparator(*result);
         if (0 == cmp)
         {
           // Found! Tree was not modified.
