@@ -33,9 +33,7 @@ SOFTWARE.
 
 namespace
 {
-  typedef etl::tree_link<1> link_tree;
-
-  struct Data : link_tree
+  struct Data : etl::intrusive_avl_tree<Data>::link
   {
     Data(int i_)
       : i(i_)
@@ -53,7 +51,7 @@ namespace
     //*************************************************************************
     TEST(test_constructor)
     {
-      const etl::intrusive_avl_tree<Data, link_tree> tree;
+      const etl::intrusive_avl_tree<Data> tree;
 
       CHECK(tree.empty());
       CHECK_EQUAL(0U, tree.size());
@@ -62,7 +60,7 @@ namespace
     //*************************************************************************
     TEST(test_empty)
     {
-      etl::intrusive_avl_tree<Data, link_tree> tree;
+      etl::intrusive_avl_tree<Data> tree;
 
       Data data1(1);
 
