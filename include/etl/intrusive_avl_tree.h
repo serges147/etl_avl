@@ -197,7 +197,7 @@ namespace etl
       TLink* parent = base::get_origin();
       while (ETL_NULLPTR != curr)
       {
-        pointer* const result = static_cast<pointer>(curr);
+        pointer result = static_cast<pointer>(curr);
         const int cmp = comparator(*result);
         if (0 == cmp)
         {
@@ -211,7 +211,7 @@ namespace etl
       }
 
       // Try to instantiate new node.
-      pointer* const result = factory();
+      pointer result = factory();
       if (ETL_NULLPTR == result)
       {
         // Failed (or rejected)! The tree was not modified.
