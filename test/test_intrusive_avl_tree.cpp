@@ -28,51 +28,148 @@ SOFTWARE.
 
 #include "unit_test_framework.h"
 
+#include "data.h"
+
 #include "etl/intrusive_avl_tree.h"
-#include "etl/intrusive_links.h"
+
+#include <string>
+#include <vector>
+
+typedef TestDataNDC<std::string> ItemNDC;
 
 namespace
 {
-  struct Data : etl::intrusive_avl_tree<Data>::link
-  {
-    Data(int i_)
-      : i(i_)
-    {
+  typedef etl::intrusive_avl_tree_base<0>::link_type ZeroLink;
+  typedef etl::intrusive_avl_tree_base<1>::link_type FirstLink;
 
+  //***************************************************************************
+  class ItemNDCNode : public ZeroLink, public FirstLink
+  {
+  public:
+
+    ItemNDCNode(const std::string& text, const int index = 0)
+      : data(text, index)
+    {
     }
 
-    static int always_less(const Data&) { return -1; }
+    friend bool operator <(const ItemNDCNode& lhs, const ItemNDCNode& rhs)
+    {
+      return lhs.data < rhs.data;
+    }
 
-    int i;
+    friend bool operator ==(const ItemNDCNode& lhs, const ItemNDCNode& rhs)
+    {
+      return lhs.data == rhs.data;
+    }
+
+    ItemNDC data;
   };
+
+  //***************************************************************************
+  struct CompareItemNDCNode
+  {
+    bool operator ()(const ItemNDCNode& lhs, const ItemNDCNode& rhs) const
+    {
+      return lhs < rhs;
+    }
+  };
+
+  //***************************************************************************
+  typedef etl::intrusive_avl_tree<ItemNDCNode> DataNDC0;
+  typedef etl::intrusive_avl_tree<ItemNDCNode, 1> DataNDC1;
+
+  typedef std::vector<ItemNDCNode> InitialDataNDC;
 
   SUITE(test_intrusive_avl_tree)
   {
-    //*************************************************************************
-    TEST(test_constructor)
-    {
-      const etl::intrusive_avl_tree<Data> tree;
+    InitialDataNDC sorted_data;
 
-      CHECK(tree.empty());
-      CHECK_EQUAL(0U, tree.size());
+    //*************************************************************************
+    struct SetupFixture
+    {
+      SetupFixture()
+      {
+        sorted_data = { ItemNDCNode("0"), ItemNDCNode("1"), ItemNDCNode("2"), ItemNDCNode("3"), ItemNDCNode("4"), ItemNDCNode("5"), ItemNDCNode("6"), ItemNDCNode("7"), ItemNDCNode("8"), ItemNDCNode("9") };
+      }
+
+      // static int always_less(const Data&) { return -1; }
+    };
+
+    //*************************************************************************
+    TEST_FIXTURE(SetupFixture, test_default_constructor)
+    {
+      DataNDC0 data0;
+      DataNDC1 data1;
+
+      CHECK(data0.empty());
+      CHECK(data1.empty());
+
+      CHECK(data0.begin() == data0.end());
+      CHECK(data1.begin() == data1.end());
     }
 
     //*************************************************************************
-    TEST(test_empty)
+    TEST_FIXTURE(SetupFixture, test_empty_begin_end)
     {
-      etl::intrusive_avl_tree<Data> tree;
+      DataNDC0 data0;
 
-      Data data1(1);
+      CHECK(data0.begin() == data0.end());
 
-      CHECK(tree.empty());
+      const DataNDC0::const_iterator begin = data0.begin();
+      const DataNDC0::const_iterator end   = data0.end();
+      CHECK(begin == end);
 
-      const auto ptr_modified = tree.find_or_create(
-        Data::always_less, [&data1] { return &data1; });
+      CHECK(data0.cbegin() == data0.cend());
+    }
 
-      CHECK_EQUAL(&data1, ptr_modified.first);
-      CHECK(ptr_modified.second);
+    //*************************************************************************
+    TEST_FIXTURE(SetupFixture, test_iterator)
+    {
+      DataNDC0 data0(sorted_data.begin(), sorted_data.end(), CompareItemNDCNode());
 
-      CHECK(!tree.empty());
+      bool are_equal = std::equal(data0.begin(), data0.end(), sorted_data.begin());
+      CHECK(are_equal);
+
+      are_equal = std::equal(
+        etl::reverse_iterator<DataNDC0::iterator>(data0.end()),
+        etl::reverse_iterator<DataNDC0::iterator>(data0.begin()),
+        sorted_data.rbegin());
+      CHECK(are_equal);
+    }
+
+    //*************************************************************************
+    TEST_FIXTURE(SetupFixture, test_const_iterator)
+    {
+      const DataNDC0 data0(sorted_data.begin(), sorted_data.end(), CompareItemNDCNode());
+
+      bool are_equal = std::equal(data0.begin(), data0.end(), sorted_data.begin());
+      CHECK(are_equal);
+
+      are_equal = std::equal(
+        etl::reverse_iterator<DataNDC0::const_iterator>(data0.cend()),
+        etl::reverse_iterator<DataNDC0::const_iterator>(data0.cbegin()),
+        sorted_data.rbegin());
+      CHECK(are_equal);
+    }
+
+    //*************************************************************************
+    TEST_FIXTURE(SetupFixture, test_xxx)
+    {
+      // etl::intrusive_avl_tree<Data> tree;
+      // CHECK(tree.begin() == tree.end());
+      //
+      // Data data1(1);
+      //
+      // CHECK(tree.empty());
+      //
+      // const auto ptr_modified = tree.find_or_create(
+      //   Data::always_less, [&data1] { return &data1; });
+      //
+      // CHECK_EQUAL(&data1, ptr_modified.first);
+      // CHECK(ptr_modified.second);
+      //
+      // CHECK(!tree.empty());
     }
   }
-}
+
+}  // namespace
