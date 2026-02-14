@@ -62,16 +62,18 @@ namespace
       return lhs.data == rhs.data;
     }
 
-    ItemNDC data;
-  };
-
-  //***************************************************************************
-  struct CompareItemNDCNode
-  {
-    bool operator ()(const ItemNDCNode& lhs, const ItemNDCNode& rhs) const
+    struct CompareByValue
     {
-      return lhs < rhs;
-    }
+      const std::string value;
+      int operator ()(const ItemNDCNode& other) const
+      {
+        return value.compare(other.data.value);
+      }
+    };
+    static int always_after(const ItemNDCNode&) { return +1; }
+    static int always_before(const ItemNDCNode&) { return -1; }
+
+    ItemNDC data;
   };
 
   //***************************************************************************
@@ -91,8 +93,6 @@ namespace
       {
         sorted_data = { ItemNDCNode("0"), ItemNDCNode("1"), ItemNDCNode("2"), ItemNDCNode("3"), ItemNDCNode("4"), ItemNDCNode("5"), ItemNDCNode("6"), ItemNDCNode("7"), ItemNDCNode("8"), ItemNDCNode("9") };
       }
-
-      // static int always_less(const Data&) { return -1; }
     };
 
     //*************************************************************************
@@ -125,7 +125,7 @@ namespace
     //*************************************************************************
     TEST_FIXTURE(SetupFixture, test_iterator)
     {
-      DataNDC0 data0(sorted_data.begin(), sorted_data.end(), CompareItemNDCNode());
+      DataNDC0 data0(sorted_data.begin(), sorted_data.end(), std::less<ItemNDCNode>());
 
       bool are_equal = std::equal(data0.begin(), data0.end(), sorted_data.begin());
       CHECK(are_equal);
@@ -140,7 +140,7 @@ namespace
     //*************************************************************************
     TEST_FIXTURE(SetupFixture, test_const_iterator)
     {
-      const DataNDC0 data0(sorted_data.begin(), sorted_data.end(), CompareItemNDCNode());
+      const DataNDC0 data0(sorted_data.begin(), sorted_data.end(), std::less<ItemNDCNode>());
 
       bool are_equal = std::equal(data0.begin(), data0.end(), sorted_data.begin());
       CHECK(are_equal);
@@ -153,22 +153,50 @@ namespace
     }
 
     //*************************************************************************
-    TEST_FIXTURE(SetupFixture, test_xxx)
+    TEST_FIXTURE(SetupFixture, test_find)
     {
-      // etl::intrusive_avl_tree<Data> tree;
-      // CHECK(tree.begin() == tree.end());
-      //
-      // Data data1(1);
-      //
-      // CHECK(tree.empty());
-      //
-      // const auto ptr_modified = tree.find_or_create(
-      //   Data::always_less, [&data1] { return &data1; });
-      //
-      // CHECK_EQUAL(&data1, ptr_modified.first);
-      // CHECK(ptr_modified.second);
-      //
-      // CHECK(!tree.empty());
+      DataNDC0 data0(sorted_data.begin(), sorted_data.end(), std::less<ItemNDCNode>());
+
+      auto iterator = data0.find(ItemNDCNode::always_before);
+      CHECK(iterator == data0.end());
+
+      iterator = data0.find(ItemNDCNode::always_after);
+      CHECK(iterator == data0.end());
+
+      iterator = data0.find(ItemNDCNode::CompareByValue{"5"});
+      CHECK(iterator != data0.end());
+      CHECK_EQUAL(iterator->data, sorted_data[5].data);
+    }
+
+    //*************************************************************************
+    TEST_FIXTURE(SetupFixture, test_find_or_insert)
+    {
+      DataNDC0 data0;
+
+      ItemNDCNode node0a("0");
+      ItemNDCNode node0b("0");
+
+      // Insert new.
+      {
+        CHECK(data0.empty());
+        const auto it_mod = data0.find_or_insert(
+          ItemNDCNode::CompareByValue{"0"}, [&node0a] { return &node0a; });
+        CHECK(!data0.empty());
+
+        CHECK(it_mod.second);
+        CHECK(it_mod.first != data0.end());
+        CHECK_EQUAL(&node0a, &it_mod.first);
+      }
+
+      // Find existing.
+      {
+        const auto it_mod = data0.find_or_insert(
+          ItemNDCNode::CompareByValue{"0"}, [&node0b] { return &node0b; });
+
+        CHECK(!it_mod.second);
+        CHECK(it_mod.first != data0.end());
+        CHECK_EQUAL(&node0a, &it_mod.first);
+      }
     }
   }
 

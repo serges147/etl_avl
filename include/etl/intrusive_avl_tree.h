@@ -65,7 +65,7 @@ namespace etl
   public:
 
     intrusive_avl_tree_iterator_exception(string_type file_name_, numeric_type line_number_)
-      : intrusive_avl_tree_exception(ETL_ERROR_TEXT("intrusive_avl_tree:iterator", ETL_INTRUSIVE_AVL_TREE_FILE_ID"B"), file_name_, line_number_)
+      : intrusive_avl_tree_exception(ETL_ERROR_TEXT("intrusive_avl_tree:iterator", ETL_INTRUSIVE_AVL_TREE_FILE_ID"A"), file_name_, line_number_)
     {
     }
   };
@@ -252,8 +252,8 @@ namespace etl
       return curr->is_origin() ? curr : curr->get_parent();
     }
 
-    template <typename Value, typename TIterator, typename Compare>
-    void assign_impl(TIterator first, TIterator last, const Compare& comp = Compare())
+    template <typename Value, typename TIterator, typename LessComp>
+    void assign_impl(TIterator first, TIterator last, const LessComp& lessComp = LessComp())
     {
       #if ETL_IS_DEBUG_BUILD
       const intmax_t diff = etl::distance(first, last);
@@ -264,21 +264,20 @@ namespace etl
       while (first != last)
       {
         link_type& link = *first++;
-        Value* p_value = static_cast<Value*>(&link);
-        find_or_create_impl<Value>(
-          [p_value, &comp](const Value& other) { return comp(*p_value, other) ? -1 : +1; },
-          [p_value]() { return p_value; });
+        Value& value = static_cast<Value&>(link);
+        const CompareFactory<Value, LessComp> compareFactory{value, lessComp};
+        find_or_insert_impl<Value>(compareFactory, compareFactory);
       }
     }
 
-    template <typename Pointer, typename Link, typename Compare>
-    static Pointer find_impl(Link* const root, const Compare& comp)
+    template <typename Value, typename Link, typename Compare>
+    static Value* find_impl(Link* const root, const Compare& comp)
     {
       // Try to find existing node.
       Link* curr = root;
       while (ETL_NULLPTR != curr)
       {
-        Pointer const result = static_cast<Pointer>(curr);
+        Value* const result = static_cast<Value*>(curr);
         const int cmp = comp(*result);
         if (0 == cmp)
         {
@@ -294,7 +293,7 @@ namespace etl
     }
 
     template <typename Value, typename Compare, typename Factory>
-    etl::pair<Value*, bool> find_or_create_impl(const Compare& comp, const Factory& factory)
+    etl::pair<Value*, bool> find_or_insert_impl(const Compare& comp, const Factory& factory)
     {
       // Try to find existing node.
       bool is_right = false;
@@ -342,6 +341,26 @@ namespace etl
 
   private:
     link_type origin; ///< This is the origin link which left child points to the root link of the tree.
+
+    template <typename Value, typename LessCompare>
+    struct CompareFactory
+    {
+      Value& value;
+      const LessCompare& lessComp;
+
+      /// Adopts `less` comparator to "integer" one.
+      int operator()(const Value& other) const
+      {
+        return lessComp(value, other) ? -1 : +1;
+      }
+
+      /// Fake "factory" that returns address of existing value.
+      Value* operator()() const
+      {
+        return &value;
+      }
+
+    };  // CompareFactory
 
   };  // intrusive_avl_tree_base
 
@@ -563,10 +582,10 @@ namespace etl
     //*************************************************************************
     /// Constructor from range
     //*************************************************************************
-    template <typename TIterator, typename Compare, typename etl::enable_if<!etl::is_integral<TIterator>::value, int>::type = 0>
-    intrusive_avl_tree(TIterator first, TIterator last, const Compare& comp = Compare())
+    template <typename TIterator, typename LessComp, typename etl::enable_if<!etl::is_integral<TIterator>::value, int>::type = 0>
+    intrusive_avl_tree(TIterator first, TIterator last, const LessComp& lessComp = LessComp())
     {
-      base::template assign_impl<value_type>(first, last, comp);
+      base::template assign_impl<value_type>(first, last, lessComp);
     }
 
     //*************************************************************************
@@ -618,21 +637,24 @@ namespace etl
     }
 
     template <typename Compare>
-    pointer find(const Compare& comp)
+    iterator find(const Compare& comp)
     {
-      return base::template find_impl<value_type>(base::get_root(), comp);
+      pointer ptr = base::template find_impl<value_type>(base::get_root(), comp);
+      return make_iterator(ptr, end());
     }
 
     template <typename Compare>
-    const_pointer find(const Compare& comp) const
+    const_iterator find(const Compare& comp) const
     {
-      return base::template find_impl<const value_type>(base::get_root(), comp);
+      const_pointer ptr = base::template find_impl<const value_type>(base::get_root(), comp);
+      return make_iterator(ptr, end());
     }
 
     template <typename Compare, typename Factory>
-    etl::pair<pointer, bool> find_or_create(const Compare& comp, const Factory& factory)
+    etl::pair<iterator, bool> find_or_insert(const Compare& comp, const Factory& factory)
     {
-      return base::template find_or_create_impl<value_type>(comp, factory);
+      const auto ptr_mod = base::template find_or_insert_impl<value_type>(comp, factory);
+      return etl::make_pair(make_iterator(ptr_mod.first, end()), ptr_mod.second);
     }
 
   private:
@@ -640,6 +662,12 @@ namespace etl
     // Disable copy construction and assignment.
     intrusive_avl_tree(const intrusive_avl_tree&);
     intrusive_avl_tree& operator = (const intrusive_avl_tree& rhs);
+
+    template <typename Iterator, typename Pointer>
+    static Iterator make_iterator(Pointer const ptr, const Iterator end)
+    {
+      return (ptr != ETL_NULLPTR) ? Iterator(ptr) : end;
+    }
 
   };  // intrusive_avl_tree
 
