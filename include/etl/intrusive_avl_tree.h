@@ -402,6 +402,7 @@ namespace etl
     public:
 
       friend class intrusive_avl_tree;
+      friend class const_iterator;
 
       iterator()
         : p_value(ETL_NULLPTR)
