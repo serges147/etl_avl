@@ -498,7 +498,7 @@ namespace etl
       {
       }
 
-      const_iterator(const iterator& other)
+      const_iterator(const typename intrusive_avl_tree::iterator& other)
         : p_value(other.p_value)
       {
       }
