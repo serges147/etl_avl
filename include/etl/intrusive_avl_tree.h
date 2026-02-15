@@ -253,7 +253,7 @@ namespace etl
     }
 
     template <typename Value, typename TIterator, typename LessComp>
-    void assign_impl(TIterator first, TIterator last, const LessComp& lessComp = LessComp())
+    void assign_impl(TIterator first, TIterator last, const LessComp& lessComp)
     {
       #if ETL_IS_DEBUG_BUILD
       const intmax_t diff = etl::distance(first, last);
@@ -583,7 +583,7 @@ namespace etl
     /// Constructor from range
     //*************************************************************************
     template <typename TIterator, typename LessComp, typename etl::enable_if<!etl::is_integral<TIterator>::value, int>::type = 0>
-    intrusive_avl_tree(TIterator first, TIterator last, const LessComp& lessComp = LessComp())
+    intrusive_avl_tree(TIterator first, TIterator last, const LessComp& lessComp)
     {
       base::template assign_impl<value_type>(first, last, lessComp);
     }
@@ -653,7 +653,7 @@ namespace etl
     template <typename Compare, typename Factory>
     etl::pair<iterator, bool> find_or_insert(const Compare& comp, const Factory& factory)
     {
-      const auto ptr_mod = base::template find_or_insert_impl<value_type>(comp, factory);
+      const etl::pair<value_type*, bool> ptr_mod = base::template find_or_insert_impl<value_type>(comp, factory);
       return etl::make_pair(make_iterator(ptr_mod.first, end()), ptr_mod.second);
     }
 
