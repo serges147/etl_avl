@@ -265,7 +265,7 @@ namespace etl
       {
         link_type& link = *first++;
         Value& value = static_cast<Value&>(link);
-        const CompareFactory<Value, LessComp> compareFactory{value, lessComp};
+        const CompareFactory<Value, LessComp> compareFactory(value, lessComp);
         find_or_insert_impl<Value>(compareFactory, compareFactory);
       }
     }
@@ -347,6 +347,10 @@ namespace etl
     {
       Value& value;
       const LessCompare& lessComp;
+
+      CompareFactory(Value& value, const LessCompare& lessComp)
+        : value(value)
+        , lessComp(lessComp) {}
 
       /// Adopts `less` comparator to "integer" one.
       int operator()(const Value& other) const
