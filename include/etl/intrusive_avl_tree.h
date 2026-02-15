@@ -348,9 +348,9 @@ namespace etl
       Value& value;
       const LessCompare& lessComp;
 
-      CompareFactory(Value& value, const LessCompare& lessComp)
-        : value(value)
-        , lessComp(lessComp) {}
+      CompareFactory(Value& valueRef, const LessCompare& lessCompRef)
+        : value(valueRef)
+        , lessComp(lessCompRef) {}
 
       /// Adopts `less` comparator to "integer" one.
       int operator()(const Value& other) const
