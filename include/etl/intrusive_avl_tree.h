@@ -32,10 +32,11 @@ SOFTWARE.
 #define ETL_INTRUSIVE_AVL_TREE_INCLUDED
 
 #include "platform.h"
-#include "type_traits.h"
 #include "error_handler.h"
 #include "intrusive_links.h"
 #include "iterator.h"
+#include "string_stream.h"
+#include "type_traits.h"
 #include "utility.h"
 
 #include <stddef.h>
@@ -97,6 +98,11 @@ namespace etl
       typedef etl::tree_link<ID_> base;
       friend class intrusive_avl_tree_base;
 
+      static base* as_base(link_type* const link)
+      {
+        return static_cast<base*>(link);
+      }
+
       bool is_origin() const
       {
         return base::etl_parent == ETL_NULLPTR;
@@ -131,6 +137,66 @@ namespace etl
       base*& get_child_ref(const bool is_right)
       {
         return is_right ? base::etl_right : base::etl_left;
+      }
+
+      void rotate(const bool is_right)
+      {
+        const bool was_right = is_child(true);
+        link_type* const leaf = get_child(!is_right);
+        etl::link_rotate(as_base(this), as_base(leaf));
+        if (link_type* const parent = leaf->get_parent())
+        {
+          parent->get_child_ref(was_right) = leaf;
+        }
+      }
+
+      link_type* adjust_balance(const bool increase)
+      {
+        const int8_t new_bf = etl_bf + (increase ? +1 : -1);
+        if ((-1 <= new_bf) && (new_bf <= +1))
+        {
+          etl_bf = new_bf;
+          return this;
+        }
+
+        const bool is_right_rotation = new_bf < 0;
+        const int8_t sign = is_right_rotation ? +1 : -1;
+        link_type* const z_leaf = get_child(!is_right_rotation);
+        if (z_leaf->etl_bf * sign <= 0)
+        {
+          rotate(is_right_rotation);
+          if (z_leaf->etl_bf == 0)
+          {
+            etl_bf = -sign;
+            z_leaf->etl_bf = +sign;
+          }
+          else
+          {
+            etl_bf = 0;
+            z_leaf->etl_bf = 0;
+          }
+          return z_leaf;
+        }
+
+        link_type* const y_leaf = z_leaf->get_child(is_right_rotation);
+        z_leaf->rotate(!is_right_rotation);
+        rotate(is_right_rotation);
+        if (y_leaf->etl_bf == 0)
+        {
+          etl_bf = 0;
+          z_leaf->etl_bf = 0;
+        }
+        else if (y_leaf->etl_bf == sign)
+        {
+          etl_bf = 0;
+          z_leaf->etl_bf = -sign;
+        }
+        else
+        {
+          etl_bf = +sign;
+          z_leaf->etl_bf = 0;
+        }
+        return y_leaf;
       }
 
       int8_t etl_bf; ///< Stores -1, 0 or +1 balancing factor.
@@ -333,10 +399,49 @@ namespace etl
       }
       static_cast<link_type*>(result)->etl_parent = parent;
 
-      // TODO: Rebalance the tree.
+      if (link_type* new_root = retrace_on_insert(result))
+      {
+        origin.etl_left = new_root;
+      }
 
       // Successfully linked, so the tree was modified.
       return etl::make_pair(result, true);
+    }
+
+    template <typename TValue>
+    void to_graphviz_impl(etl::string_stream& ss) const
+    {
+      ss << "digraph {\n"
+         << "node[style=filled,shape=circle,fontcolor=white,penwidth=0,fontname=\"monospace\",fixedsize=1,fontsize=18];\n"
+         << "edge[arrowhead=none,penwidth=2];\n"
+         << "nodesep=0.0;ranksep=0.3;splines=false;\n";
+
+      const link_type* const beg = begin_impl(origin);
+      const link_type* const end = end_impl(origin);
+      const link_type* curr = beg;
+      while (curr != end)
+      {
+        const char* const fill_color =
+            (curr->etl_bf == 0) ? "black" : ((curr->etl_bf > 0) ? "orange" : "blue");
+        ss << static_cast<TValue&>(*curr).data.value.c_str() << "[fillcolor=" << fill_color << "];";
+        curr = next_in_order_impl(curr);
+      }
+      curr = beg;
+      while (curr != end)
+      {
+        if (const link_type* const child = curr->get_child(false))
+        {
+          ss << static_cast<TValue&>(*curr).data.value.c_str();
+          ss << ":sw->" << static_cast<TValue&>(*child).data.value.c_str() << ":n;";
+        }
+        if (const link_type* const child = curr->get_child(true))
+        {
+          ss << static_cast<TValue&>(*curr).data.value.c_str();
+          ss << ":se->" << static_cast<TValue&>(*child).data.value.c_str() << ":n;";
+        }
+        curr = next_in_order_impl(curr);
+      }
+      ss << "\n}\n";
     }
 
   private:
@@ -365,6 +470,22 @@ namespace etl
       }
 
     };  // CompareFactory
+
+    link_type* retrace_on_insert(link_type* curr)
+    {
+      link_type* parent = curr->get_parent();
+      while (!parent->is_origin())
+      {
+        const bool is_right = curr->is_child(true);
+        curr = parent->adjust_balance(is_right);
+        parent = curr->get_parent();
+        if (curr->etl_bf == 0)
+        {
+          break;
+        }
+      }
+      return parent->is_origin() ? curr : ETL_NULLPTR;
+    }
 
   };  // intrusive_avl_tree_base
 
@@ -660,6 +781,11 @@ namespace etl
     {
       const etl::pair<value_type*, bool> ptr_mod = base::template find_or_insert_impl<value_type>(comp, factory);
       return etl::make_pair(make_iterator(ptr_mod.first, end()), ptr_mod.second);
+    }
+
+    void to_graphviz(etl::string_stream& ss) const
+    {
+      base::template to_graphviz_impl<const value_type>(ss);
     }
 
   private:
