@@ -32,10 +32,13 @@ SOFTWARE.
 
 #include "etl/intrusive_avl_tree.h"
 
+#include <array>
+#include <iostream>
+#include <sstream>
 #include <string>
 #include <vector>
 
-typedef TestDataNDC<std::string> ItemNDC;
+typedef TestDataNDC<int> ItemNDC;
 
 namespace
 {
@@ -47,8 +50,8 @@ namespace
   {
   public:
 
-    ItemNDCNode(const std::string& text, const int index = 0)
-      : data(text, index)
+    ItemNDCNode(const int value, const int index = 0)
+      : data(value, index)
     {
     }
 
@@ -64,10 +67,10 @@ namespace
 
     struct CompareByValue
     {
-      const std::string value;
+      int value;
       int operator ()(const ItemNDCNode& other) const
       {
-        return value.compare(other.data.value);
+        return value - other.data.value;
       }
     };
     static int always_after(const ItemNDCNode&) { return +1; }
@@ -84,14 +87,64 @@ namespace
 
   SUITE(test_intrusive_avl_tree)
   {
-    InitialDataNDC sorted_data;
-
     //*************************************************************************
     struct SetupFixture
     {
+      InitialDataNDC sorted_data;
+      InitialDataNDC unsorted_data;
+
       SetupFixture()
       {
-        sorted_data = { ItemNDCNode("0"), ItemNDCNode("1"), ItemNDCNode("2"), ItemNDCNode("3"), ItemNDCNode("4"), ItemNDCNode("5"), ItemNDCNode("6"), ItemNDCNode("7"), ItemNDCNode("8"), ItemNDCNode("9") };
+        sorted_data.clear();
+        for (int i = 0; i < 31; ++i)
+        {
+          sorted_data.emplace_back(i, i);
+        }
+
+        constexpr std::array<size_t, 31> unsorted_order{
+          1, 0, 3, 2, 5, 4, 7, 6, 9, 8, 11, 10, 13, 12, 15, 14,
+          17, 16, 19, 18, 21, 20, 23, 22, 25, 24, 27, 26, 30, 29, 28,
+        };
+        unsorted_data.clear();
+        for (const auto idx : unsorted_order)
+        {
+          unsorted_data.emplace_back(sorted_data.at(idx));
+        }
+      }
+
+      template <typename Tree>
+      std::string to_graphviz(Tree& tree) const
+      {
+        std::ostringstream ss;
+        ss << "// \"dot\" engine at https://edotor.net/\n";
+        ss << "digraph {\n";
+        ss << "node[style=filled,fontcolor=white];\n";
+
+        const auto beg = tree.begin();
+        const auto end = tree.end();
+        for (auto curr = beg; curr != end; ++curr)
+        {
+          ss << curr->data.value;
+          const auto bf = curr.get_balance_factor();
+          const std::string bf_color = (bf == 0) ? "black" : (bf < 0) ? "blue" : "orange";
+          ss << "[fillcolor=" << bf_color << "];";
+        }
+        ss << "\n";
+        for (auto curr = beg; curr != end; ++curr)
+        {
+          if (auto child = curr.get_child(false))
+          {
+            ss << curr->data.value;
+            ss << ":sw->" << child->data.value << ":n;";
+          }
+          if (auto child = curr.get_child(true))
+          {
+            ss << curr->data.value;
+            ss << ":se->" << child->data.value << ":n;";
+          }
+        }
+        ss << "\n}\n";
+        return ss.str();
       }
     };
 
@@ -126,6 +179,7 @@ namespace
     TEST_FIXTURE(SetupFixture, test_iterator)
     {
       DataNDC0 data0(sorted_data.begin(), sorted_data.end(), std::less<ItemNDCNode>());
+      std::cout << to_graphviz(data0);
 
       bool are_equal = std::equal(data0.begin(), data0.end(), sorted_data.begin());
       CHECK(are_equal);
@@ -135,12 +189,49 @@ namespace
         etl::reverse_iterator<DataNDC0::iterator>(data0.begin()),
         sorted_data.rbegin());
       CHECK(are_equal);
+
+      auto curr = data0.begin();
+      CHECK(curr);
+      CHECK(curr.has_value());
+      const auto& front = *curr;
+      CHECK_EQUAL(&front, &curr);
+      CHECK_EQUAL(front.data.value, sorted_data.front().data.value);
+      CHECK_EQUAL(curr->data.value, sorted_data.front().data.value);
+      auto prev = curr++;
+      CHECK(curr != data0.begin());
+      CHECK(prev == data0.begin());
+      CHECK(prev-- == data0.begin());
+      CHECK(prev == data0.end());
+
+      curr = data0.end();
+      CHECK(curr);
+      CHECK(curr.has_value());
+      CHECK(curr-- == data0.end());
+      CHECK(curr != data0.end());
+      CHECK_EQUAL(curr->data.value, sorted_data.back().data.value);
+    }
+
+    //*************************************************************************
+    TEST_FIXTURE(SetupFixture, test_iterator_default)
+    {
+      DataNDC0::iterator it;
+      CHECK_EQUAL(false, static_cast<bool>(it));
+      CHECK_EQUAL(false, it.has_value());
+
+      ++it;
+      CHECK_EQUAL(false, static_cast<bool>(it));
+      CHECK_EQUAL(false, it.has_value());
+
+      --it;
+      CHECK_EQUAL(false, static_cast<bool>(it));
+      CHECK_EQUAL(false, it.has_value());
     }
 
     //*************************************************************************
     TEST_FIXTURE(SetupFixture, test_const_iterator)
     {
-      const DataNDC0 data0(sorted_data.begin(), sorted_data.end(), std::less<ItemNDCNode>());
+      const DataNDC0 data0(unsorted_data.begin(), unsorted_data.end(), std::less<ItemNDCNode>());
+      std::cout << to_graphviz(data0);
 
       bool are_equal = std::equal(data0.begin(), data0.end(), sorted_data.begin());
       CHECK(are_equal);
@@ -150,6 +241,42 @@ namespace
         etl::reverse_iterator<DataNDC0::const_iterator>(data0.cbegin()),
         sorted_data.rbegin());
       CHECK(are_equal);
+
+      auto curr = data0.begin();
+      CHECK(curr);
+      CHECK(curr.has_value());
+      const auto& front = *curr;
+      CHECK_EQUAL(&front, &curr);
+      CHECK_EQUAL(front.data.value, sorted_data.front().data.value);
+      CHECK_EQUAL(curr->data.value, sorted_data.front().data.value);
+      auto prev = curr++;
+      CHECK(curr != data0.begin());
+      CHECK(prev == data0.begin());
+      CHECK(prev-- == data0.begin());
+      CHECK(prev == data0.end());
+
+      curr = data0.end();
+      CHECK(curr);
+      CHECK(curr.has_value());
+      CHECK(curr-- == data0.end());
+      CHECK(curr != data0.end());
+      CHECK_EQUAL(curr->data.value, sorted_data.back().data.value);
+    }
+
+    //*************************************************************************
+    TEST_FIXTURE(SetupFixture, test_const_iterator_default)
+    {
+      DataNDC0::const_iterator it;
+      CHECK_EQUAL(false, static_cast<bool>(it));
+      CHECK_EQUAL(false, it.has_value());
+
+      ++it;
+      CHECK_EQUAL(false, static_cast<bool>(it));
+      CHECK_EQUAL(false, it.has_value());
+
+      --it;
+      CHECK_EQUAL(false, static_cast<bool>(it));
+      CHECK_EQUAL(false, it.has_value());
     }
 
     //*************************************************************************
@@ -163,7 +290,23 @@ namespace
       iterator = data0.find(ItemNDCNode::always_after);
       CHECK(iterator == data0.end());
 
-      iterator = data0.find(ItemNDCNode::CompareByValue{"5"});
+      iterator = data0.find(ItemNDCNode::CompareByValue{5});
+      CHECK(iterator != data0.end());
+      CHECK_EQUAL(iterator->data, sorted_data[5].data);
+    }
+
+    //*************************************************************************
+    TEST_FIXTURE(SetupFixture, test_find_const)
+    {
+      const DataNDC0 data0(sorted_data.begin(), sorted_data.end(), std::less<ItemNDCNode>());
+
+      auto iterator = data0.find(ItemNDCNode::always_before);
+      CHECK(iterator == data0.end());
+
+      iterator = data0.find(ItemNDCNode::always_after);
+      CHECK(iterator == data0.end());
+
+      iterator = data0.find(ItemNDCNode::CompareByValue{5});
       CHECK(iterator != data0.end());
       CHECK_EQUAL(iterator->data, sorted_data[5].data);
     }
@@ -173,14 +316,14 @@ namespace
     {
       DataNDC0 data0;
 
-      ItemNDCNode node0a("0");
-      ItemNDCNode node0b("0");
+      ItemNDCNode node0a(0);
+      ItemNDCNode node0b(0);
 
       // Insert new.
       {
         CHECK(data0.empty());
         const auto it_mod = data0.find_or_insert(
-          ItemNDCNode::CompareByValue{"0"}, [&node0a] { return &node0a; });
+          ItemNDCNode::CompareByValue{0}, [&node0a] { return &node0a; });
         CHECK(!data0.empty());
 
         CHECK(it_mod.second);
@@ -191,11 +334,13 @@ namespace
       // Find existing.
       {
         const auto it_mod = data0.find_or_insert(
-          ItemNDCNode::CompareByValue{"0"}, [&node0b] { return &node0b; });
+          ItemNDCNode::CompareByValue{0}, [&node0b] { return &node0b; });
 
         CHECK(!it_mod.second);
         CHECK(it_mod.first != data0.end());
         CHECK_EQUAL(&node0a, &it_mod.first);
+
+        data0.erase(it_mod.first);
       }
     }
   }
