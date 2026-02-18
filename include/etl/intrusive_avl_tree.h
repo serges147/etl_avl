@@ -824,7 +824,7 @@ namespace etl
     etl::pair<iterator, bool> find_or_insert(const TCompare& comp, const TFactory& factory)
     {
       const etl::pair<value_type*, bool> ptr_mod = base::template find_or_insert_impl<value_type>(comp, factory);
-      return etl::make_pair(make_iterator(ptr_mod.first, end()), ptr_mod.second);
+      return etl::make_pair(make_iterator(ptr_mod.first, iterator()), ptr_mod.second);
     }
 
     //*************************************************************************
