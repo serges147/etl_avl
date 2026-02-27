@@ -35,6 +35,7 @@ SOFTWARE.
 #include "error_handler.h"
 #include "intrusive_links.h"
 #include "iterator.h"
+#include "memory.h"
 #include "type_traits.h"
 #include "utility.h"
 
@@ -50,7 +51,7 @@ namespace etl
   {
   public:
 
-    intrusive_avl_tree_exception(string_type reason_, string_type file_name_, numeric_type line_number_)
+    intrusive_avl_tree_exception(const string_type reason_, const string_type file_name_, const numeric_type line_number_)
       : exception(reason_, file_name_, line_number_)
     {
     }
@@ -64,7 +65,7 @@ namespace etl
   {
   public:
 
-    intrusive_avl_tree_iterator_exception(string_type file_name_, numeric_type line_number_)
+    intrusive_avl_tree_iterator_exception(const string_type file_name_, const numeric_type line_number_)
       : intrusive_avl_tree_exception(ETL_ERROR_TEXT("intrusive_avl_tree:iterator", ETL_INTRUSIVE_AVL_TREE_FILE_ID"A"), file_name_, line_number_)
     {
     }
@@ -567,7 +568,10 @@ namespace etl
 
       iterator& operator =(const iterator& other)
       {
-        p_value = other.p_value;
+        if (this != etl::addressof(other))
+        {
+          p_value = other.p_value;
+        }
         return *this;
       }
 
@@ -620,7 +624,7 @@ namespace etl
 
     private:
 
-      iterator(link_type* value)
+      explicit iterator(link_type* value)
         : p_value(value)
       {
       }
@@ -681,7 +685,10 @@ namespace etl
 
       const_iterator& operator =(const const_iterator& other)
       {
-        p_value = other.p_value;
+        if (this != etl::addressof(other))
+        {
+          p_value = other.p_value;
+        }
         return *this;
       }
 
@@ -732,7 +739,7 @@ namespace etl
 
     private:
 
-      const_iterator(const link_type* value)
+      explicit const_iterator(const link_type* value)
         : p_value(value)
       {
       }
