@@ -113,7 +113,7 @@ namespace
       }
 
       template <typename Iterator>
-      int verify_node(const Iterator it) const
+      int verify_link(const Iterator it) const
       {
         if (!it.has_value())
         {
@@ -130,21 +130,21 @@ namespace
           CHECK((it == parent_left_child) || (it == parent_right_child));
         }
 
-        const int left_height = verify_node(left_child);
+        const int left_height = verify_link(left_child);
         if (left_child.has_value())
         {
           CHECK(it == left_child.get_parent());
         }
 
-        const int right_height = verify_node(right_child);
+        const int right_height = verify_link(right_child);
         if (right_child.has_value())
         {
           CHECK(it == right_child.get_parent());
         }
 
-        const int8_t bf = it.get_balance_factor();
-        CHECK((-1 <= bf) && (bf <= 1));
-        CHECK_EQUAL(right_height - left_height, static_cast<int>(it.get_balance_factor()));
+        const int8_t balance_factor = it.get_balance_factor();
+        CHECK((-1 <= balance_factor) && (balance_factor <= 1));
+        CHECK_EQUAL(right_height - left_height, static_cast<int>(balance_factor));
         return 1 + etl::max(right_height, left_height);
       }
 
@@ -152,7 +152,7 @@ namespace
       void verify_tree(const Tree& tree) const
       {
         const auto root = tree.end().get_child(false);
-        verify_node(root);
+        verify_link(root);
       }
 
       template <typename Tree>
@@ -245,6 +245,8 @@ namespace
       CHECK_EQUAL(front.data.value, sorted_data.front().data.value);
       CHECK_EQUAL(curr->data.value, sorted_data.front().data.value);
       auto prev = curr++;
+      CHECK(curr == prev.get_parent());
+      CHECK(prev == curr.get_child(false));
       CHECK(curr != data0.begin());
       CHECK(prev == data0.begin());
       CHECK(prev-- == data0.begin());
@@ -256,14 +258,24 @@ namespace
       CHECK(curr-- == data0.end());
       CHECK(curr != data0.end());
       CHECK_EQUAL(curr->data.value, sorted_data.back().data.value);
+
+      prev = curr--;
+      CHECK(curr == prev.get_parent());
+      CHECK(prev == curr.get_child(true));
     }
 
     //*************************************************************************
     TEST_FIXTURE(SetupFixture, test_iterator_default)
     {
       DataNDC0::iterator it;
+
       CHECK_EQUAL(false, static_cast<bool>(it));
       CHECK_EQUAL(false, it.has_value());
+
+      CHECK_EQUAL(0, it.get_balance_factor());
+      CHECK_EQUAL(false, it.get_parent().has_value());
+      CHECK_EQUAL(false, it.get_child(true).has_value());
+      CHECK_EQUAL(false, it.get_child(false).has_value());
 
       ++it;
       CHECK_EQUAL(false, static_cast<bool>(it));
@@ -298,6 +310,8 @@ namespace
       CHECK_EQUAL(front.data.value, sorted_data.front().data.value);
       CHECK_EQUAL(curr->data.value, sorted_data.front().data.value);
       auto prev = curr++;
+      CHECK(curr == prev.get_parent());
+      CHECK(prev == curr.get_child(false));
       CHECK(curr != data0.begin());
       CHECK(prev == data0.begin());
       CHECK(prev-- == data0.begin());
@@ -309,6 +323,10 @@ namespace
       CHECK(curr-- == data0.end());
       CHECK(curr != data0.end());
       CHECK_EQUAL(curr->data.value, sorted_data.back().data.value);
+
+      prev = curr--;
+      CHECK(curr == prev.get_parent());
+      CHECK(prev == curr.get_child(true));
     }
 
     //*************************************************************************
@@ -317,6 +335,11 @@ namespace
       DataNDC0::const_iterator it;
       CHECK_EQUAL(false, static_cast<bool>(it));
       CHECK_EQUAL(false, it.has_value());
+
+      CHECK_EQUAL(0, it.get_balance_factor());
+      CHECK_EQUAL(false, it.get_parent().has_value());
+      CHECK_EQUAL(false, it.get_child(true).has_value());
+      CHECK_EQUAL(false, it.get_child(false).has_value());
 
       ++it;
       CHECK_EQUAL(false, static_cast<bool>(it));
@@ -417,7 +440,7 @@ namespace
         CHECK(iterator != data0.end());
 
         iterator = data0.erase(iterator);
-        // verify_tree(data0);
+        verify_tree(data0);
         CHECK(iterator.has_value());
         if (iterator != data0.end())
         {
@@ -440,7 +463,7 @@ namespace
         CHECK(iterator != data0.end());
 
         iterator = data0.erase(iterator);
-        // verify_tree(data0);
+        verify_tree(data0);
         CHECK(iterator.has_value());
         if (iterator != data0.end())
         {

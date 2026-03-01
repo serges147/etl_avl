@@ -137,6 +137,12 @@ namespace etl
         return static_cast<const link_type*>(is_right ? base::etl_right : base::etl_left);
       }
 
+      void set_child(link_type* const child, const bool is_right)
+      {
+        base*& child_ref = is_right ? base::etl_right : base::etl_left;
+        child_ref = child;
+      }
+
       link_type* get_left()
       {
         return static_cast<link_type*>(base::etl_left);
@@ -147,11 +153,6 @@ namespace etl
         return static_cast<link_type*>(base::etl_right);
       }
 
-      base*& get_child_ref(const bool is_right)
-      {
-        return is_right ? base::etl_right : base::etl_left;
-      }
-
       void rotate(const bool is_right)
       {
         const bool       was_right = is_right_child();
@@ -159,7 +160,7 @@ namespace etl
         etl::link_rotate<base>(this, leaf);
         if (link_type* const parent = leaf->get_parent())
         {
-          parent->get_child_ref(was_right) = leaf;
+          parent->set_child(leaf, was_right);
         }
       }
 
@@ -451,10 +452,10 @@ namespace etl
       return etl::make_pair(result, true);
     }
 
-    void erase_impl(link_type* z_link)
+    void erase_impl(link_type* const z_link)
     {
       link_type* parent = z_link->get_parent();
-      const bool is_right = z_link->is_right_child();
+      bool is_right = z_link->is_right_child();
 
       if (!z_link->has_left())
       {
@@ -466,21 +467,35 @@ namespace etl
       }
       else
       {
-        link_type* y_link = next_in_order_impl(z_link);
-        if (y_link->get_parent() != z_link)
+        link_type* const y_link = next_in_order_impl(z_link);
+        link_type* const y_link_parent = y_link->get_parent();
+        y_link->etl_bf = z_link->etl_bf;
+        if (z_link != y_link_parent)
         {
-          y_link->get_parent()->link_child(y_link->get_right(), y_link->is_right_child());
+          y_link_parent->link_child(y_link->get_right(), y_link->is_right_child());
           link_type* const z_right = z_link->get_right();
           y_link->set_right(z_right);
           z_right->set_parent(y_link);
+          parent->link_child(y_link, is_right);
+
+          is_right = false;
+          parent = y_link_parent;
         }
-        parent->link_child(y_link, is_right);
+        else
+        {
+          parent->link_child(y_link, is_right);
+
+          is_right = true;
+          parent = y_link;
+        }
         link_type* const z_left = z_link->get_left();
         y_link->set_left(z_left);
         z_left->set_parent(y_link);
       }
 
       z_link->clear();
+
+      retrace_on_erase(parent, is_right);
     }
 
   private:
@@ -528,7 +543,25 @@ namespace etl
 
       if (parent->is_origin())
       {
-        parent->get_child_ref(false) = curr;
+        parent->set_left(curr);
+      }
+    }
+
+    void retrace_on_erase(link_type* parent, bool is_right)
+    {
+      while (!parent->is_origin())
+      {
+        link_type* const curr = parent->adjust_balance(!is_right);
+        parent = curr->get_parent();
+        if ((curr->etl_bf != 0) || parent->is_origin())
+        {
+          if (parent->is_origin())
+          {
+            parent->set_left(curr);
+          }
+          break;
+        }
+        is_right = curr->is_right_child();
       }
     }
 
@@ -655,6 +688,21 @@ namespace etl
         return base::get_balance_factor_impl(p_value);
       }
 
+      //*************************************************************************
+      /// Gets parent node.
+      /// Normally is not needed unless advanced traversal is required.
+      /// Result iterator will be valueless (`has_value() == false`) if there is no parent.
+      //*************************************************************************
+      iterator get_parent() const
+      {
+        return iterator(base::get_parent_impl(p_value));
+      }
+
+      //*************************************************************************
+      /// Gets a child node.
+      /// Normally is not needed unless advanced traversal is required.
+      /// Result iterator will be valueless (`has_value() == false`) if there is no such child.
+      //*************************************************************************
       iterator get_child(const bool is_right) const
       {
         return iterator(base::get_child_impl(p_value, is_right));
