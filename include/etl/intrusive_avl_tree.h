@@ -365,7 +365,7 @@ namespace etl
       TLink* curr = root;
       while (ETL_NULLPTR != curr)
       {
-        TValue* const result = static_cast<TValue*>(curr);
+        auto* const result = static_cast<TValue*>(curr);
         const int cmp = comp(*result);
         if (0 == cmp)
         {
@@ -389,7 +389,7 @@ namespace etl
       link_type* parent = &origin;
       while (ETL_NULLPTR != curr)
       {
-        TValue* const result = static_cast<TValue*>(curr);
+        auto* const result = static_cast<TValue*>(curr);
         const int cmp = comp(*result);
         if (0 == cmp)
         {
