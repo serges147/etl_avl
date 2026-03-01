@@ -352,7 +352,7 @@ namespace etl
       while (first != last)
       {
         link_type& link = *first++;
-        TValue& value = static_cast<TValue&>(link);
+        auto& value = static_cast<TValue&>(link);
         const CompareFactory<TValue, TLessComp> compareFactory(value, lessComp);
         find_or_insert_impl<TValue>(compareFactory, compareFactory);
       }
