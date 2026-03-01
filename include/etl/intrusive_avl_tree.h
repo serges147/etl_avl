@@ -50,7 +50,6 @@ namespace etl
   class intrusive_avl_tree_exception : public exception
   {
   public:
-
     intrusive_avl_tree_exception(const string_type reason_, const string_type file_name_, const numeric_type line_number_)
       : exception(reason_, file_name_, line_number_)
     {
@@ -64,9 +63,8 @@ namespace etl
   class intrusive_avl_tree_iterator_exception : public intrusive_avl_tree_exception
   {
   public:
-
     intrusive_avl_tree_iterator_exception(const string_type file_name_, const numeric_type line_number_)
-      : intrusive_avl_tree_exception(ETL_ERROR_TEXT("intrusive_avl_tree:iterator", ETL_INTRUSIVE_AVL_TREE_FILE_ID"A"), file_name_, line_number_)
+      : intrusive_avl_tree_exception(ETL_ERROR_TEXT("intrusive_avl_tree:iterator", ETL_INTRUSIVE_AVL_TREE_FILE_ID "A"), file_name_, line_number_)
     {
     }
   };
@@ -156,7 +154,7 @@ namespace etl
 
       void rotate(const bool is_right)
       {
-        const bool was_right = is_right_child();
+        const bool       was_right = is_right_child();
         link_type* const leaf = get_child(!is_right);
         etl::link_rotate<base>(this, leaf);
         if (link_type* const parent = leaf->get_parent())
@@ -174,8 +172,8 @@ namespace etl
           return this;
         }
 
-        const bool is_right_rotation = new_bf < 0;
-        const int8_t sign = is_right_rotation ? +1 : -1;
+        const bool       is_right_rotation = new_bf < 0;
+        const int8_t     sign = is_right_rotation ? +1 : -1;
         link_type* const z_leaf = get_child(!is_right_rotation);
         if (z_leaf->etl_bf * sign <= 0)
         {
@@ -226,7 +224,7 @@ namespace etl
         }
       }
 
-      int8_t etl_bf; ///< Stores -1, 0 or +1 balancing factor.
+      int8_t etl_bf;  ///< Stores -1, 0 or +1 balancing factor.
 
     };  // link_type
 
@@ -239,7 +237,6 @@ namespace etl
     }
 
   protected:
-
     //*************************************************************************
     /// Constructor
     //*************************************************************************
@@ -378,16 +375,16 @@ namespace etl
     template <typename TValue, typename TIterator, typename TLessComp>
     void assign_impl(TIterator first, TIterator last, const TLessComp& lessComp)
     {
-      #if ETL_IS_DEBUG_BUILD
+#if ETL_IS_DEBUG_BUILD
       const intmax_t diff = etl::distance(first, last);
       ETL_ASSERT(diff >= 0, ETL_ERROR(intrusive_avl_tree_iterator_exception));
-      #endif
+#endif
 
       // Add all the elements.
       while (first != last)
       {
-        link_type& link = *first++;
-        auto& value = static_cast<TValue&>(link);
+        link_type&                              link = *first++;
+        auto&                                   value = static_cast<TValue&>(link);
         const CompareFactory<TValue, TLessComp> compareFactory(value, lessComp);
         find_or_insert_impl<TValue>(compareFactory, compareFactory);
       }
@@ -401,7 +398,7 @@ namespace etl
       while (ETL_NULLPTR != curr)
       {
         auto* const result = static_cast<TValue*>(curr);
-        const int cmp = comp(*result);
+        const int   cmp = comp(*result);
         if (0 == cmp)
         {
           // Found!
@@ -419,13 +416,13 @@ namespace etl
     etl::pair<TValue*, bool> find_or_insert_impl(const TCompare& comp, const TFactory& factory)
     {
       // Try to find existing node.
-      bool is_right = false;
+      bool       is_right = false;
       link_type* curr = get_root();
       link_type* parent = &origin;
       while (ETL_NULLPTR != curr)
       {
         auto* const result = static_cast<TValue*>(curr);
-        const int cmp = comp(*result);
+        const int   cmp = comp(*result);
         if (0 == cmp)
         {
           // Found! Tree was not modified.
@@ -487,17 +484,19 @@ namespace etl
     }
 
   private:
-    link_type origin; ///< This is the origin link which left child points to the root link of the tree.
+    link_type origin;  ///< This is the origin link which left child points to the root link of the tree.
 
     template <typename TValue, typename TLessComp>
     struct CompareFactory
     {
-      TValue& value;
+      TValue&          value;
       const TLessComp& lessComp;
 
       CompareFactory(TValue& valueRef, const TLessComp& lessCompRef)
         : value(valueRef)
-        , lessComp(lessCompRef) {}
+        , lessComp(lessCompRef)
+      {
+      }
 
       /// Adopts `less` comparator to "integer" one.
       int operator()(const TValue& other) const
@@ -548,7 +547,6 @@ namespace etl
     typedef etl::intrusive_avl_tree_base<ID_> base;
 
   public:
-
     // Node typedef.
     typedef typename base::link_type link_type;
 
@@ -566,7 +564,6 @@ namespace etl
     class iterator : public etl::iterator<ETL_OR_STD::bidirectional_iterator_tag, value_type>
     {
     public:
-
       friend class intrusive_avl_tree;
       friend class const_iterator;
 
@@ -580,33 +577,33 @@ namespace etl
       {
       }
 
-      iterator& operator ++()
+      iterator& operator++()
       {
         p_value = base::next_in_order_impl(p_value);
         return *this;
       }
 
-      iterator operator ++(int)
+      iterator operator++(int)
       {
         iterator temp(*this);
         p_value = base::next_in_order_impl(p_value);
         return temp;
       }
 
-      iterator& operator --()
+      iterator& operator--()
       {
         p_value = base::prev_in_order_impl(p_value);
         return *this;
       }
 
-      iterator operator --(int)
+      iterator operator--(int)
       {
         iterator temp(*this);
         p_value = base::prev_in_order_impl(p_value);
         return temp;
       }
 
-      iterator& operator =(const iterator& other)
+      iterator& operator=(const iterator& other)
       {
         if (this != etl::addressof(other))
         {
@@ -615,29 +612,30 @@ namespace etl
         return *this;
       }
 
-      reference operator *() const
+      reference operator*() const
       {
 #include "private/diagnostic_null_dereference_push.h"
+
         return *static_cast<pointer>(p_value);
 #include "private/diagnostic_pop.h"
       }
 
-      pointer operator &() const
+      pointer operator&() const
       {
         return static_cast<pointer>(p_value);
       }
 
-      pointer operator ->() const
+      pointer operator->() const
       {
         return static_cast<pointer>(p_value);
       }
 
-      friend bool operator == (const iterator& lhs, const iterator& rhs)
+      friend bool operator==(const iterator& lhs, const iterator& rhs)
       {
         return lhs.p_value == rhs.p_value;
       }
 
-      friend bool operator != (const iterator& lhs, const iterator& rhs)
+      friend bool operator!=(const iterator& lhs, const iterator& rhs)
       {
         return !(lhs == rhs);
       }
@@ -663,8 +661,12 @@ namespace etl
       }
 
     private:
-
       explicit iterator(link_type* value)
+        : p_value(value)
+      {
+      }
+
+      explicit iterator(const link_type* value)
         : p_value(value)
       {
       }
@@ -679,7 +681,6 @@ namespace etl
     class const_iterator : public etl::iterator<ETL_OR_STD::bidirectional_iterator_tag, const value_type>
     {
     public:
-
       friend class intrusive_avl_tree;
 
       const_iterator()
@@ -697,33 +698,33 @@ namespace etl
       {
       }
 
-      const_iterator& operator ++()
+      const_iterator& operator++()
       {
         p_value = base::next_in_order_impl(p_value);
         return *this;
       }
 
-      const_iterator operator ++(int)
+      const_iterator operator++(int)
       {
         const_iterator temp(*this);
         p_value = base::next_in_order_impl(p_value);
         return temp;
       }
 
-      const_iterator& operator --()
+      const_iterator& operator--()
       {
         p_value = base::prev_in_order_impl(p_value);
         return *this;
       }
 
-      const_iterator operator --(int)
+      const_iterator operator--(int)
       {
         const_iterator temp(*this);
         p_value = base::prev_in_order_impl(p_value);
         return temp;
       }
 
-      const_iterator& operator =(const const_iterator& other)
+      const_iterator& operator=(const const_iterator& other)
       {
         if (this != etl::addressof(other))
         {
@@ -732,27 +733,27 @@ namespace etl
         return *this;
       }
 
-      const_reference operator *() const
+      const_reference operator*() const
       {
         return *static_cast<const_pointer>(p_value);
       }
 
-      const_pointer operator &() const
+      const_pointer operator&() const
       {
         return static_cast<const_pointer>(p_value);
       }
 
-      const_pointer operator ->() const
+      const_pointer operator->() const
       {
         return static_cast<const_pointer>(p_value);
       }
 
-      friend bool operator == (const const_iterator& lhs, const const_iterator& rhs)
+      friend bool operator==(const const_iterator& lhs, const const_iterator& rhs)
       {
         return lhs.p_value == rhs.p_value;
       }
 
-      friend bool operator != (const const_iterator& lhs, const const_iterator& rhs)
+      friend bool operator!=(const const_iterator& lhs, const const_iterator& rhs)
       {
         return !(lhs == rhs);
       }
@@ -789,11 +790,10 @@ namespace etl
       //*************************************************************************
       const_iterator get_child(const bool is_right) const
       {
-         return const_iterator(base::get_child_impl(p_value, is_right));
+        return const_iterator(base::get_child_impl(p_value, is_right));
       }
 
     private:
-
       explicit const_iterator(const link_type* value)
         : p_value(value)
       {
@@ -907,19 +907,13 @@ namespace etl
     //*************************************************************************
     iterator erase(const_iterator position)
     {
-      iterator next(position);
-      ++next;
-
-      erase_impl(*position.p_value);
-
-      return next;
+      return erase(iterator(const_cast<link_type*>(position.p_value)));
     }
 
   private:
-
     // Disable copy construction and assignment.
     intrusive_avl_tree(const intrusive_avl_tree&);
-    intrusive_avl_tree& operator = (const intrusive_avl_tree& rhs);
+    intrusive_avl_tree& operator=(const intrusive_avl_tree& rhs);
 
     template <typename TIterator, typename Pointer>
     static TIterator make_iterator(Pointer const ptr, const TIterator end)

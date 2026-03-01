@@ -427,6 +427,29 @@ namespace
       }
       CHECK(data0.empty());
     }
+
+    //*************************************************************************
+    TEST_FIXTURE(SetupFixture, test_erase_const_it)
+    {
+      DataNDC0 data0(sorted_data.begin(), sorted_data.end(), std::less<ItemNDCNode>());
+      verify_tree(data0);
+
+      for (const auto& item: unsorted_data)
+      {
+        DataNDC0::const_iterator iterator = data0.find(ItemNDCNode::CompareByValue{item.data.index});
+        CHECK(iterator != data0.end());
+
+        iterator = data0.erase(iterator);
+        // verify_tree(data0);
+        CHECK(iterator.has_value());
+        if (iterator != data0.end())
+        {
+          const auto& next = *iterator;
+          CHECK(item < next);
+        }
+      }
+      CHECK(data0.empty());
+    }
   }
 
 }  // namespace
