@@ -330,7 +330,7 @@ namespace etl
     {
       if (ETL_NULLPTR == curr)
       {
-        return curr;
+        return ETL_NULLPTR;
       }
 
       if (TLink* const next = curr->get_child(false))
@@ -351,13 +351,28 @@ namespace etl
     }
 
     template <typename TLink>
-    static TLink* get_child_impl(TLink* curr, const bool is_right)
+    static TLink* get_parent_impl(TLink* const curr)
     {
-      if (ETL_NULLPTR != curr)
+      if (ETL_NULLPTR == curr)
       {
-        curr = curr->get_child(is_right);
+        return ETL_NULLPTR;
       }
-      return curr;
+      TLink* const parent = curr->get_parent();
+      if ((ETL_NULLPTR == parent) || parent->is_origin())
+      {
+        return ETL_NULLPTR;
+      }
+      return parent;
+    }
+
+    template <typename TLink>
+    static TLink* get_child_impl(TLink* const curr, const bool is_right)
+    {
+      if (ETL_NULLPTR == curr)
+      {
+        return ETL_NULLPTR;
+      }
+      return curr->get_child(is_right);
     }
 
     template <typename TValue, typename TIterator, typename TLessComp>
@@ -458,12 +473,12 @@ namespace etl
         if (y_link->get_parent() != z_link)
         {
           y_link->get_parent()->link_child(y_link->get_right(), y_link->is_right_child());
-          auto* const z_right = z_link->get_right();
+          link_type* const z_right = z_link->get_right();
           y_link->set_right(z_right);
           z_right->set_parent(y_link);
         }
         parent->link_child(y_link, is_right);
-        auto* const z_left = z_link->get_left();
+        link_type* const z_left = z_link->get_left();
         y_link->set_left(z_left);
         z_left->set_parent(y_link);
       }
@@ -757,6 +772,21 @@ namespace etl
         return base::get_balance_factor_impl(p_value);
       }
 
+      //*************************************************************************
+      /// Gets parent node.
+      /// Normally is not needed unless advanced traversal is required.
+      /// Result iterator will be valueless (`has_value() == false`) if there is no parent.
+      //*************************************************************************
+      const_iterator get_parent() const
+      {
+        return const_iterator(base::get_parent_impl(p_value));
+      }
+
+      //*************************************************************************
+      /// Gets a child node.
+      /// Normally is not needed unless advanced traversal is required.
+      /// Result iterator will be valueless (`has_value() == false`) if there is no such child.
+      //*************************************************************************
       const_iterator get_child(const bool is_right) const
       {
          return const_iterator(base::get_child_impl(p_value, is_right));

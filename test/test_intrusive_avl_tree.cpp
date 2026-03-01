@@ -112,8 +112,51 @@ namespace
         }
       }
 
+      template <typename Iterator>
+      int verify_node(const Iterator it) const
+      {
+        if (!it.has_value())
+        {
+          return 0;
+        }
+
+        const auto parent = it.get_parent();
+        const auto left_child = it.get_child(false);
+        const auto right_child = it.get_child(true);
+        if (parent.has_value())
+        {
+          const auto parent_left_child = parent.get_child(false);
+          const auto parent_right_child = parent.get_child(true);
+          CHECK((it == parent_left_child) || (it == parent_right_child));
+        }
+
+        const int left_height = verify_node(left_child);
+        if (left_child.has_value())
+        {
+          CHECK(it == left_child.get_parent());
+        }
+
+        const int right_height = verify_node(right_child);
+        if (right_child.has_value())
+        {
+          CHECK(it == right_child.get_parent());
+        }
+
+        const int8_t bf = it.get_balance_factor();
+        CHECK((-1 <= bf) && (bf <= 1));
+        CHECK_EQUAL(right_height - left_height, static_cast<int>(it.get_balance_factor()));
+        return 1 + etl::max(right_height, left_height);
+      }
+
       template <typename Tree>
-      std::string to_graphviz(Tree& tree) const
+      void verify_tree(const Tree& tree) const
+      {
+        const auto root = tree.end().get_child(false);
+        verify_node(root);
+      }
+
+      template <typename Tree>
+      std::string to_graphviz(const Tree& tree) const
       {
         std::ostringstream ss;
         ss << "// \"dot\" engine at https://edotor.net/\n";
@@ -159,6 +202,9 @@ namespace
 
       CHECK(data0.begin() == data0.end());
       CHECK(data1.begin() == data1.end());
+
+      verify_tree(data0);
+      verify_tree(data1);
     }
 
     //*************************************************************************
@@ -179,6 +225,7 @@ namespace
     TEST_FIXTURE(SetupFixture, test_iterator)
     {
       DataNDC0 data0(sorted_data.begin(), sorted_data.end(), std::less<ItemNDCNode>());
+      verify_tree(data0);
       std::cout << to_graphviz(data0);
 
       bool are_equal = std::equal(data0.begin(), data0.end(), sorted_data.begin());
@@ -231,6 +278,7 @@ namespace
     TEST_FIXTURE(SetupFixture, test_const_iterator)
     {
       const DataNDC0 data0(unsorted_data.begin(), unsorted_data.end(), std::less<ItemNDCNode>());
+      verify_tree(data0);
       std::cout << to_graphviz(data0);
 
       bool are_equal = std::equal(data0.begin(), data0.end(), sorted_data.begin());
@@ -325,6 +373,7 @@ namespace
         const auto it_mod = data0.find_or_insert(
           ItemNDCNode::CompareByValue{0}, [&node0a] { return &node0a; });
         CHECK(!data0.empty());
+        verify_tree(data0);
 
         CHECK(it_mod.second);
         CHECK(it_mod.first != data0.end());
@@ -343,9 +392,24 @@ namespace
     }
 
     //*************************************************************************
+    TEST_FIXTURE(SetupFixture, test_find_or_insert_unsorted)
+    {
+      DataNDC0 data0;
+      verify_tree(data0);
+
+      for (auto& item: unsorted_data)
+      {
+        data0.find_or_insert(
+                  ItemNDCNode::CompareByValue{item.data.value}, [&item] { return &item; });
+        verify_tree(data0);
+      }
+    }
+
+    //*************************************************************************
     TEST_FIXTURE(SetupFixture, test_erase)
     {
       DataNDC0 data0(sorted_data.begin(), sorted_data.end(), std::less<ItemNDCNode>());
+      verify_tree(data0);
 
       for (const auto& item: unsorted_data)
       {
@@ -353,6 +417,7 @@ namespace
         CHECK(iterator != data0.end());
 
         iterator = data0.erase(iterator);
+        // verify_tree(data0);
         CHECK(iterator.has_value());
         if (iterator != data0.end())
         {
