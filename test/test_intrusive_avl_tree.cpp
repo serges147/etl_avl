@@ -151,8 +151,13 @@ namespace
       template <typename Tree>
       void verify_tree(const Tree& tree) const
       {
+        typedef typename Tree::value_type value_type;
+        typedef etl::reverse_iterator<typename Tree::const_iterator> rev_it;
+
         const auto root = tree.end().get_child(false);
         verify_link(root);
+        CHECK(etl::is_sorted(tree.begin(), tree.end()));
+        CHECK(etl::is_sorted(rev_it(tree.end()), rev_it(tree.begin()), etl::greater<value_type>()));
       }
 
       template <typename Tree>
@@ -224,17 +229,15 @@ namespace
     //*************************************************************************
     TEST_FIXTURE(SetupFixture, test_iterator)
     {
+      typedef etl::reverse_iterator<DataNDC0::iterator> rev_it;
+
       DataNDC0 data0(sorted_data.begin(), sorted_data.end(), std::less<ItemNDCNode>());
       verify_tree(data0);
-      std::cout << to_graphviz(data0);
 
       bool are_equal = std::equal(data0.begin(), data0.end(), sorted_data.begin());
       CHECK(are_equal);
 
-      are_equal = std::equal(
-        etl::reverse_iterator<DataNDC0::iterator>(data0.end()),
-        etl::reverse_iterator<DataNDC0::iterator>(data0.begin()),
-        sorted_data.rbegin());
+      are_equal = std::equal(rev_it(data0.end()), rev_it(data0.begin()), sorted_data.rbegin());
       CHECK(are_equal);
 
       auto curr = data0.begin();
@@ -289,6 +292,8 @@ namespace
     //*************************************************************************
     TEST_FIXTURE(SetupFixture, test_const_iterator)
     {
+      typedef etl::reverse_iterator<DataNDC0::const_iterator> rev_it;
+
       const DataNDC0 data0(unsorted_data.begin(), unsorted_data.end(), std::less<ItemNDCNode>());
       verify_tree(data0);
       std::cout << to_graphviz(data0);
@@ -296,10 +301,7 @@ namespace
       bool are_equal = std::equal(data0.begin(), data0.end(), sorted_data.begin());
       CHECK(are_equal);
 
-      are_equal = std::equal(
-        etl::reverse_iterator<DataNDC0::const_iterator>(data0.cend()),
-        etl::reverse_iterator<DataNDC0::const_iterator>(data0.cbegin()),
-        sorted_data.rbegin());
+      are_equal = std::equal(rev_it(data0.cend()), rev_it(data0.cbegin()), sorted_data.rbegin());
       CHECK(are_equal);
 
       auto curr = data0.begin();
@@ -436,15 +438,15 @@ namespace
 
       for (const auto& item: unsorted_data)
       {
-        auto iterator = data0.find(ItemNDCNode::CompareByValue{item.data.index});
-        CHECK(iterator != data0.end());
+        const DataNDC0::iterator it = data0.find(ItemNDCNode::CompareByValue{item.data.index});
+        CHECK(it != data0.end());
 
-        iterator = data0.erase(iterator);
+        const DataNDC0::iterator next_it = data0.erase(it);
         verify_tree(data0);
-        CHECK(iterator.has_value());
-        if (iterator != data0.end())
+        CHECK(next_it.has_value());
+        if (next_it != data0.end())
         {
-          const auto& next = *iterator;
+          const auto& next = *next_it;
           CHECK(item < next);
         }
       }
@@ -459,15 +461,15 @@ namespace
 
       for (const auto& item: unsorted_data)
       {
-        DataNDC0::const_iterator iterator = data0.find(ItemNDCNode::CompareByValue{item.data.index});
-        CHECK(iterator != data0.end());
+        const DataNDC0::const_iterator it = data0.find(ItemNDCNode::CompareByValue{item.data.index});
+        CHECK(it != data0.end());
 
-        iterator = data0.erase(iterator);
+        const DataNDC0::iterator next_it = data0.erase(it);
         verify_tree(data0);
-        CHECK(iterator.has_value());
-        if (iterator != data0.end())
+        CHECK(next_it.has_value());
+        if (next_it != data0.end())
         {
-          const auto& next = *iterator;
+          const auto& next = *next_it;
           CHECK(item < next);
         }
       }
