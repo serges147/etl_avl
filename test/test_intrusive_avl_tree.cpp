@@ -178,7 +178,7 @@ namespace
     //*************************************************************************
     TEST_FIXTURE(SetupFixture, test_iterator)
     {
-      DataNDC0 data0(sorted_data.begin(), sorted_data.end(), std::less<>());
+      DataNDC0 data0(sorted_data.begin(), sorted_data.end(), std::less<ItemNDCNode>());
       std::cout << to_graphviz(data0);
 
       bool are_equal = std::equal(data0.begin(), data0.end(), sorted_data.begin());
@@ -230,7 +230,7 @@ namespace
     //*************************************************************************
     TEST_FIXTURE(SetupFixture, test_const_iterator)
     {
-      const DataNDC0 data0(unsorted_data.begin(), unsorted_data.end(), std::less<>());
+      const DataNDC0 data0(unsorted_data.begin(), unsorted_data.end(), std::less<ItemNDCNode>());
       std::cout << to_graphviz(data0);
 
       bool are_equal = std::equal(data0.begin(), data0.end(), sorted_data.begin());
@@ -282,7 +282,7 @@ namespace
     //*************************************************************************
     TEST_FIXTURE(SetupFixture, test_find)
     {
-      DataNDC0 data0(sorted_data.begin(), sorted_data.end(), std::less<>());
+      DataNDC0 data0(sorted_data.begin(), sorted_data.end(), std::less<ItemNDCNode>());
 
       auto iterator = data0.find(ItemNDCNode::always_before);
       CHECK(iterator == data0.end());
@@ -298,7 +298,7 @@ namespace
     //*************************************************************************
     TEST_FIXTURE(SetupFixture, test_find_const)
     {
-      const DataNDC0 data0(sorted_data.begin(), sorted_data.end(), std::less<>());
+      const DataNDC0 data0(sorted_data.begin(), sorted_data.end(), std::less<ItemNDCNode>());
 
       auto iterator = data0.find(ItemNDCNode::always_before);
       CHECK(iterator == data0.end());
@@ -339,9 +339,28 @@ namespace
         CHECK(!it_mod.second);
         CHECK(it_mod.first != data0.end());
         CHECK_EQUAL(&node0a, &it_mod.first);
-
-        data0.erase(it_mod.first);
       }
+    }
+
+    //*************************************************************************
+    TEST_FIXTURE(SetupFixture, test_erase)
+    {
+      DataNDC0 data0(sorted_data.begin(), sorted_data.end(), std::less<ItemNDCNode>());
+
+      for (const auto& item: unsorted_data)
+      {
+        auto iterator = data0.find(ItemNDCNode::CompareByValue{item.data.index});
+        CHECK(iterator != data0.end());
+
+        iterator = data0.erase(iterator);
+        CHECK(iterator.has_value());
+        if (iterator != data0.end())
+        {
+          const auto& next = *iterator;
+          CHECK(item < next);
+        }
+      }
+      CHECK(data0.empty());
     }
   }
 

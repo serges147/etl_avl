@@ -119,6 +119,16 @@ namespace etl
         return (ETL_NULLPTR != parent) && (this == parent->get_child(is_right));
       }
 
+      bool is_left_child() const
+      {
+        return is_child(false);
+      }
+
+      bool is_right_child() const
+      {
+        return is_child(true);
+      }
+
       link_type* get_child(const bool is_right)
       {
         return static_cast<link_type*>(is_right ? base::etl_right : base::etl_left);
@@ -129,6 +139,16 @@ namespace etl
         return static_cast<const link_type*>(is_right ? base::etl_right : base::etl_left);
       }
 
+      link_type* get_left()
+      {
+        return static_cast<link_type*>(base::etl_left);
+      }
+
+      link_type* get_right()
+      {
+        return static_cast<link_type*>(base::etl_right);
+      }
+
       base*& get_child_ref(const bool is_right)
       {
         return is_right ? base::etl_right : base::etl_left;
@@ -136,7 +156,7 @@ namespace etl
 
       void rotate(const bool is_right)
       {
-        const bool was_right = is_child(true);
+        const bool was_right = is_right_child();
         link_type* const leaf = get_child(!is_right);
         etl::link_rotate<base>(this, leaf);
         if (link_type* const parent = leaf->get_parent())
@@ -298,7 +318,7 @@ namespace etl
         return find_extremum_impl(next, false);
       }
 
-      while (curr->is_child(true))
+      while (curr->is_right_child())
       {
         curr = curr->get_parent();
       }
@@ -318,7 +338,7 @@ namespace etl
         return find_extremum_impl(next, true);
       }
 
-      while (curr->is_child(false))
+      while (curr->is_left_child())
       {
         curr = curr->get_parent();
       }
@@ -419,31 +439,36 @@ namespace etl
       return etl::make_pair(result, true);
     }
 
-    void erase_impl(link_type* curr)
+    void erase_impl(link_type* z_link)
     {
-      link_type* parent = curr->get_parent();
-      const bool is_right = curr->is_child(true);
+      link_type* parent = z_link->get_parent();
+      const bool is_right = z_link->is_right_child();
 
-      if (!curr->has_left())
+      if (!z_link->has_left())
       {
-        parent->link_child(curr->get_child(true), is_right);
+        parent->link_child(z_link->get_right(), is_right);
       }
-      else if (!curr->has_right())
+      else if (!z_link->has_right())
       {
-        parent->link_child(curr->get_child(false), is_right);
+        parent->link_child(z_link->get_left(), is_right);
       }
       else
       {
-        link_type* y_link = next_in_order_impl(curr);
-        if (y_link->get_parent() != curr)
+        link_type* y_link = next_in_order_impl(z_link);
+        if (y_link->get_parent() != z_link)
         {
-          y_link->get_parent()->link_child(y_link->get_child(true), is_right);
-
+          y_link->get_parent()->link_child(y_link->get_right(), y_link->is_right_child());
+          auto* const z_right = z_link->get_right();
+          y_link->set_right(z_right);
+          z_right->set_parent(y_link);
         }
-
+        parent->link_child(y_link, is_right);
+        auto* const z_left = z_link->get_left();
+        y_link->set_left(z_left);
+        z_left->set_parent(y_link);
       }
 
-      curr->clear();
+      z_link->clear();
     }
 
   private:
@@ -478,7 +503,7 @@ namespace etl
       link_type* parent = curr->get_parent();
       while (!parent->is_origin())
       {
-        const bool is_right = curr->is_child(true);
+        const bool is_right = curr->is_right_child();
         curr = parent->adjust_balance(is_right);
         parent = curr->get_parent();
         if (curr->etl_bf == 0)
