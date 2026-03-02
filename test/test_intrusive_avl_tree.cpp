@@ -112,6 +112,11 @@ namespace
       return lhs.data < rhs.data;
     }
 
+    friend bool operator ==(const ItemMNode& lhs, const ItemMNode& rhs)
+    {
+      return lhs.data == rhs.data;
+    }
+
     struct CompareByValue
     {
       int value;
@@ -751,6 +756,15 @@ namespace
       it = data0.find(ItemMNode::CompareByValue{item_idx});
       CHECK(&it == &item);
       verify_tree(data0);
+    }
+
+    //*************************************************************************
+    TEST_FIXTURE(SetupFixture, test_constructor_move)
+    {
+      DataM data0a(sorted_data_moveable.begin(), sorted_data_moveable.end(), std::less<ItemMNode>());
+      const DataM data0b(std::move(data0a));
+      verify_tree(data0b);
+      CHECK(std::equal(data0b.begin(), data0b.end(), sorted_data_moveable.begin()));
     }
   }
 

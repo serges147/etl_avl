@@ -97,6 +97,12 @@ namespace etl
       ID = ID_,
     };
 
+#if ETL_USING_CPP11
+    intrusive_avl_tree_base(const intrusive_avl_tree_base&) = delete;
+    intrusive_avl_tree_base& operator=(const intrusive_avl_tree_base& rhs) = delete;
+    intrusive_avl_tree_base& operator=(intrusive_avl_tree_base&& rhs) ETL_NOEXCEPT = delete;
+#endif
+
     /// Base for elements of this AVL tree.
     struct link_type : private etl::tree_link<ID_>
     {
@@ -311,11 +317,19 @@ namespace etl
 
   protected:
     //*************************************************************************
-    /// Constructor
+    /// Default constructor.
     //*************************************************************************
     intrusive_avl_tree_base()
     {
     }
+
+#if ETL_USING_CPP11
+    //*************************************************************************
+    /// Move constructor.
+    /// Complexity: O(1).
+    //*************************************************************************
+    intrusive_avl_tree_base(intrusive_avl_tree_base&&) ETL_NOEXCEPT= default;
+#endif
 
     //*************************************************************************
     /// Destructor
@@ -576,6 +590,13 @@ namespace etl
 
   private:
     link_type origin;  ///< This is the origin link which left child points to the root link of the tree.
+
+#if ETL_USING_CPP11
+#else
+    // Disable copy construction and assignment.
+    intrusive_avl_tree_base(const intrusive_avl_tree_base&);
+    intrusive_avl_tree_base& operator=(const intrusive_avl_tree_base& rhs);
+#endif
 
     template <typename TValue, typename TLessComp>
     struct CompareFactory
@@ -976,7 +997,7 @@ namespace etl
     };  // const_iterator
 
     //*************************************************************************
-    /// Constructor
+    /// Default constructor.
     //*************************************************************************
     intrusive_avl_tree()
       : intrusive_avl_tree_base<ID_>()
@@ -992,6 +1013,18 @@ namespace etl
     {
       base::template assign_impl<value_type>(first, last, lessComp);
     }
+
+#if ETL_USING_CPP11
+    //*************************************************************************
+    /// Move constructor.
+    /// Complexity: O(1).
+    //*************************************************************************
+    intrusive_avl_tree(intrusive_avl_tree&&) ETL_NOEXCEPT= default;
+
+    intrusive_avl_tree(const intrusive_avl_tree&) = delete;
+    intrusive_avl_tree& operator=(const intrusive_avl_tree& rhs) = delete;
+    intrusive_avl_tree& operator=(intrusive_avl_tree&& rhs) ETL_NOEXCEPT = delete;
+#endif
 
     //*************************************************************************
     /// Gets the beginning of the intrusive_avl_tree.
@@ -1175,9 +1208,12 @@ namespace etl
     }
 
   private:
+#if ETL_USING_CPP11
+#else
     // Disable copy construction and assignment.
     intrusive_avl_tree(const intrusive_avl_tree&);
     intrusive_avl_tree& operator=(const intrusive_avl_tree& rhs);
+#endif
 
     template <typename TIterator, typename Pointer>
     static TIterator make_iterator(Pointer const ptr, const TIterator end)
