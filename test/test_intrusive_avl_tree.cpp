@@ -34,6 +34,7 @@ SOFTWARE.
 
 #include <array>
 #include <iostream>
+#include <random>
 #include <sstream>
 #include <string>
 #include <vector>
@@ -474,6 +475,79 @@ namespace
         }
       }
       CHECK(data0.empty());
+    }
+
+    //*************************************************************************
+    TEST_FIXTURE(SetupFixture, test_random_insert_and_erase)
+    {
+      // Deliberately seeded with fixed number, so that if it fails then always in the same way.
+      std::mt19937 mte(123);
+
+      InitialDataNDC nodes;
+      constexpr size_t N = 256;
+      for (size_t i = 0; i < N; ++i)
+      {
+        nodes.emplace_back(i, i);
+      }
+
+      DataNDC0 data0;
+
+      auto makeRandomNumber = [&mte](const size_t n) -> size_t { return mte() % n; };
+      auto insert_item = [&](const size_t n)
+      {
+        const ItemNDCNode::CompareByValue comp{static_cast<int>(n)};
+        const auto it = data0.find(comp);
+        if (it == data0.end())
+        {
+          bool factory_was_called = false;
+          auto it_mod = data0.find_or_insert(comp, [&]
+          {
+            factory_was_called = true;
+            return &nodes.at(n);
+          });
+          CHECK(it_mod.second);
+          CHECK(factory_was_called);
+          CHECK_EQUAL(n, it_mod.first->data.index);
+        }
+        else
+        {
+          CHECK_EQUAL(n, it->data.index);
+          auto it_mod = data0.find_or_insert(comp, [&]
+          {
+            CHECK_MESSAGE("Should no be called!")
+            CHECK(false);
+            return ETL_NULLPTR;
+          });
+          CHECK(it == it_mod.first);
+          CHECK_FALSE(it_mod.second);
+        }
+      };
+      auto erase_item = [&](const size_t n)
+      {
+        const ItemNDCNode::CompareByValue comp{static_cast<int>(n)};
+        auto it = data0.find(comp);
+        if (it != data0.end())
+        {
+          CHECK_EQUAL(n, it->data.index);
+          data0.erase(it);
+          it = data0.find(comp);
+          CHECK(it == data0.end());
+        }
+      };
+
+      for (size_t i = 0; i < 10'000; ++i)
+      {
+        if (makeRandomNumber(2) == 0)
+        {
+          erase_item(makeRandomNumber(N));
+        }
+        else
+        {
+          insert_item(makeRandomNumber(N));
+        }
+
+        verify_tree(data0);
+      }
     }
   }
 

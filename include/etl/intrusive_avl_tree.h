@@ -203,11 +203,13 @@ namespace etl
         else if (y_leaf->etl_bf == sign)
         {
           etl_bf = 0;
+          y_leaf->etl_bf = 0;
           z_leaf->etl_bf = -sign;
         }
         else
         {
           etl_bf = +sign;
+          y_leaf->etl_bf = 0;
           z_leaf->etl_bf = 0;
         }
         return y_leaf;
@@ -494,6 +496,7 @@ namespace etl
       }
 
       z_link->clear();
+      z_link->etl_bf = 0;
 
       retrace_on_erase(parent, is_right);
     }
