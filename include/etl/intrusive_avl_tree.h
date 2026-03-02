@@ -302,6 +302,7 @@ namespace etl
 
     //*************************************************************************
     /// Checks if the tree is in the empty state.
+    /// Complexity: O(1).
     //*************************************************************************
     bool empty() const
     {
@@ -508,7 +509,7 @@ namespace etl
 
       // Try to instantiate new node.
       TValue* const result = factory();
-      auto* const result_link = static_cast<link_type*>(result);
+      link_type* const result_link = static_cast<link_type*>(result);
       if ((ETL_NULLPTR == result) || (ETL_NULLPTR == result_link))
       {
         // Failed (or rejected)! The tree was not modified.
@@ -688,12 +689,21 @@ namespace etl
       {
       }
 
+      //*************************************************************************
+      /// Increments iterator to point to the next ("greater") item.
+      /// Complexity: amortized O(1), worst-case O(log(N)).
+      //*************************************************************************
       iterator& operator++()
       {
         p_value = base::next_in_order_impl(p_value);
         return *this;
       }
 
+      //*************************************************************************
+      /// Increments iterator to point to the next ("greater") item.
+      /// Complexity: amortized O(1), worst-case O(log(N)).
+      /// Returns original iterator (before the increment).
+      //*************************************************************************
       iterator operator++(int)
       {
         iterator temp(*this);
@@ -701,12 +711,21 @@ namespace etl
         return temp;
       }
 
+      //*************************************************************************
+      /// Decrements iterator to point to the previous ("smaller") item.
+      /// Complexity: amortized O(1), worst-case O(log(N)).
+      //*************************************************************************
       iterator& operator--()
       {
         p_value = base::prev_in_order_impl(p_value);
         return *this;
       }
 
+      //*************************************************************************
+      /// Decrements iterator to point to the previous ("smaller") item.
+      /// Complexity: amortized O(1), worst-case O(log(N)).
+      /// Returns original iterator (before the decrement).
+      //*************************************************************************
       iterator operator--(int)
       {
         iterator temp(*this);
@@ -760,6 +779,12 @@ namespace etl
         return p_value != ETL_NULLPTR;
       }
 
+      //*************************************************************************
+      /// Gets balance factor of tree node.
+      /// Complexity: O(1).
+      /// Normally is not needed unless advanced traversal is required.
+      /// Result: -1, 0 or +1 depending on children tree height difference.
+      //*************************************************************************
       int8_t get_balance_factor() const
       {
         return base::get_balance_factor_impl(p_value);
@@ -767,6 +792,7 @@ namespace etl
 
       //*************************************************************************
       /// Gets parent node.
+      /// Complexity: O(1).
       /// Normally is not needed unless advanced traversal is required.
       /// Result iterator will be valueless (`has_value() == false`) if there is no parent.
       //*************************************************************************
@@ -777,6 +803,7 @@ namespace etl
 
       //*************************************************************************
       /// Gets a child node.
+      /// Complexity: O(1).
       /// Normally is not needed unless advanced traversal is required.
       /// Result iterator will be valueless (`has_value() == false`) if there is no such child.
       //*************************************************************************
@@ -818,12 +845,20 @@ namespace etl
       {
       }
 
+      //*************************************************************************
+      /// Increments const iterator to point to the next ("greater") item.
+      /// Complexity: amortized O(1), worst-case O(log(N)).
+      //*************************************************************************
       const_iterator& operator++()
       {
         p_value = base::next_in_order_impl(p_value);
         return *this;
       }
 
+      //*************************************************************************
+      /// Increments const iterator to point to the next ("greater") item.
+      /// Complexity: amortized O(1), worst-case O(log(N)).
+      /// Returns original iterator (before the increment).
       const_iterator operator++(int)
       {
         const_iterator temp(*this);
@@ -831,12 +866,21 @@ namespace etl
         return temp;
       }
 
+      //*************************************************************************
+      /// Decrements const iterator to point to the previous ("smaller") item.
+      /// Complexity: amortized O(1), worst-case O(log(N)).
+      //*************************************************************************
       const_iterator& operator--()
       {
         p_value = base::prev_in_order_impl(p_value);
         return *this;
       }
 
+      //*************************************************************************
+      /// Decrements const iterator to point to the previous ("smaller") item.
+      /// Complexity: amortized O(1), worst-case O(log(N)).
+      /// Returns original iterator (before the decrement).
+      //*************************************************************************
       const_iterator operator--(int)
       {
         const_iterator temp(*this);
@@ -888,6 +932,12 @@ namespace etl
         return p_value != ETL_NULLPTR;
       }
 
+      //*************************************************************************
+      /// Gets balance factor of tree node.
+      /// Complexity: O(1).
+      /// Normally is not needed unless advanced traversal is required.
+      /// Result: -1, 0 or +1 depending on children tree height difference.
+      //*************************************************************************
       int8_t get_balance_factor() const
       {
         return base::get_balance_factor_impl(p_value);
@@ -895,6 +945,7 @@ namespace etl
 
       //*************************************************************************
       /// Gets parent node.
+      /// Complexity: O(1).
       /// Normally is not needed unless advanced traversal is required.
       /// Result iterator will be valueless (`has_value() == false`) if there is no parent.
       //*************************************************************************
@@ -905,6 +956,7 @@ namespace etl
 
       //*************************************************************************
       /// Gets a child node.
+      /// Complexity: O(1).
       /// Normally is not needed unless advanced traversal is required.
       /// Result iterator will be valueless (`has_value() == false`) if there is no such child.
       //*************************************************************************
@@ -932,7 +984,8 @@ namespace etl
     }
 
     //*************************************************************************
-    /// Constructor from range
+    /// Constructor from range.
+    /// Complexity: O(N*log(N)).
     //*************************************************************************
     template <typename TIterator, typename TLessComp>
     intrusive_avl_tree(TIterator first, TIterator last, const TLessComp& lessComp, typename etl::enable_if<!etl::is_integral<TIterator>::value, int>::type = 0)
@@ -942,6 +995,7 @@ namespace etl
 
     //*************************************************************************
     /// Gets the beginning of the intrusive_avl_tree.
+    /// Complexity: O(log(N)).
     //*************************************************************************
     iterator begin()
     {
@@ -950,6 +1004,7 @@ namespace etl
 
     //*************************************************************************
     /// Gets the beginning of the intrusive_avl_tree.
+    /// Complexity: O(log(N)).
     //*************************************************************************
     const_iterator begin() const
     {
@@ -958,6 +1013,7 @@ namespace etl
 
     //*************************************************************************
     /// Gets the beginning of the intrusive_avl_tree.
+    /// Complexity: O(log(N)).
     //*************************************************************************
     const_iterator cbegin() const
     {
@@ -966,6 +1022,7 @@ namespace etl
 
     //*************************************************************************
     /// Gets the end of the intrusive_avl_tree.
+    /// Complexity: O(1).
     //*************************************************************************
     iterator end()
     {
@@ -974,6 +1031,7 @@ namespace etl
 
     //*************************************************************************
     /// Gets the end of the intrusive_avl_tree.
+    /// Complexity: O(1).
     //*************************************************************************
     const_iterator end() const
     {
@@ -982,6 +1040,7 @@ namespace etl
 
     //*************************************************************************
     /// Gets the end of the intrusive_avl_tree.
+    /// Complexity: O(1).
     //*************************************************************************
     const_iterator cend() const
     {
@@ -990,6 +1049,7 @@ namespace etl
 
     //*************************************************************************
     /// Gets root node (if any).
+    /// Complexity: O(1).
     /// Normally is not needed unless advanced traversal is required.
     /// Result iterator will be valueless (`has_value() == false`) if tree is empty.
     //*************************************************************************
@@ -1000,6 +1060,7 @@ namespace etl
 
     //*************************************************************************
     /// Gets root node (if any).
+    /// Complexity: O(1).
     /// Normally is not needed unless advanced traversal is required.
     /// Result iterator will be valueless (`has_value() == false`) if tree is empty.
     //*************************************************************************
@@ -1008,6 +1069,19 @@ namespace etl
       return const_iterator(base::get_root());
     }
 
+    //*************************************************************************
+    /// Finds an item using given comparer.
+    /// Complexity: O(log(N)) assuming O(1) for the comparer.
+    ///
+    /// The comparer should accept `const value_type& value` argument,
+    /// and return integer result:
+    /// - `> 0` if the find target is greater than the argument
+    /// - `0` if the target is found
+    /// - `< 0` if the target is smaller
+    /// - if throws then exception is propagated
+    ///
+    /// Result iterator will be `end()` if there is no matching item.
+    //*************************************************************************
     template <typename TCompare>
     iterator find(const TCompare& comp)
     {
@@ -1015,6 +1089,19 @@ namespace etl
       return make_iterator(ptr, end());
     }
 
+    //*************************************************************************
+    /// Finds a constant item using given comparer.
+    /// Complexity: O(log(N)) assuming O(1) for the comparer.
+    ///
+    /// The comparer should accept `const value_type& value` argument,
+    /// and return integer result:
+    /// - `> 0` if the find target is greater than the argument
+    /// - `0` if the target is found
+    /// - `< 0` if the target is smaller
+    /// - if throws then exception is propagated
+    ///
+    /// Result iterator will be `end()` if there is no matching item.
+    //*************************************************************************
     template <typename TCompare>
     const_iterator find(const TCompare& comp) const
     {
@@ -1022,6 +1109,35 @@ namespace etl
       return make_iterator(ptr, end());
     }
 
+    //*************************************************************************
+    /// Finds an existing item using given comparer, and if not found
+    /// then invokes `factory` functor to insert a new item. The new item
+    /// is inserted at the tree position where the search has stopped.
+    /// Complexity: O(log(N)) assuming O(1) for the comparer and factory.
+    /// Operation does NOT invalidate any already existing iterators.
+    ///
+    /// The comparer should accept `const value_type& value` argument,
+    /// and return integer result:
+    /// - `> 0` if the find target is greater than the argument
+    /// - `0` if the target is found
+    /// - `< 0` if the target is smaller
+    /// - if throws then exception is propagated
+    /// Hint: If result tree should contain "duplicates" then return non-zero
+    /// result even for "equal" items, like:
+    /// - `+1` to append a new item after existing duplicates
+    /// - `-1` to prepend a new item before existing duplicates
+    ///
+    /// The factory functor should return address of a "new" value (castable to the `link_type*`).
+    /// The returned value should not be already linked to any tree,
+    /// otherwise throws `intrusive_avl_tree_value_is_already_linked`.
+    /// If return address is `nullptr` then tree won't be modified,
+    /// and final result iterator will be valueless.
+    /// If factory throws then exception is propagated (without modifying the tree).
+    ///
+    /// Result contains a pair of:
+    /// - iterator to found (or inserted) item (could be valueless, but never `end()`).
+    /// - boolean indicating whether tree was modified (due to successful insertion).
+    //*************************************************************************
     template <typename TCompare, typename TFactory>
     etl::pair<iterator, bool> find_or_insert(const TCompare& comp, const TFactory& factory)
     {
@@ -1031,6 +1147,10 @@ namespace etl
 
     //*************************************************************************
     /// Erases the value at the specified position.
+    /// Complexity: O(log(N)).
+    /// Operation invalidates any existing iterator to the same item,
+    /// but it does NOT affect any other iterators.
+    /// Returns iterator to the next tree node (after the erased one).
     //*************************************************************************
     iterator erase(iterator position)
     {
@@ -1044,6 +1164,10 @@ namespace etl
 
     //*************************************************************************
     /// Erases the value at the specified position.
+    /// Complexity: O(log(N)).
+    /// Operation invalidates any existing iterator to the same item,
+    /// but it does NOT affect any other iterators.
+    /// Returns iterator to the next tree node (after the erased one).
     //*************************************************************************
     iterator erase(const_iterator position)
     {
