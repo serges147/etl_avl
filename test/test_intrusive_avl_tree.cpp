@@ -203,7 +203,7 @@ namespace
         typedef typename Tree::value_type value_type;
         typedef etl::reverse_iterator<typename Tree::const_iterator> rev_it;
 
-        const auto root = tree.end().get_child(false);
+        const auto root = tree.get_root();
         verify_link(root);
         CHECK(etl::is_sorted(tree.begin(), tree.end()));
         CHECK(etl::is_sorted(rev_it(tree.end()), rev_it(tree.begin()), etl::greater<value_type>()));
@@ -273,11 +273,12 @@ namespace
     }
 
     //*************************************************************************
-    TEST_FIXTURE(SetupFixture, test_empty_begin_end)
+    TEST_FIXTURE(SetupFixture, test_empty_begin_end_root)
     {
       DataNDC0 data0;
 
       CHECK(data0.begin() == data0.end());
+      CHECK(!data0.get_root().has_value());
 
       const DataNDC0::const_iterator begin = data0.begin();
       const DataNDC0::const_iterator end   = data0.end();
@@ -325,6 +326,10 @@ namespace
       prev = curr--;
       CHECK(curr == prev.get_parent());
       CHECK(prev == curr.get_child(true));
+
+      curr = data0.get_root();
+      CHECK(curr.has_value());
+      CHECK_EQUAL(curr->data.value, sorted_data.at(sorted_data.size() / 2).data.value);
     }
 
     //*************************************************************************
@@ -389,6 +394,10 @@ namespace
       prev = curr--;
       CHECK(curr == prev.get_parent());
       CHECK(prev == curr.get_child(true));
+
+      curr = data0.get_root();
+      CHECK(curr.has_value());
+      CHECK_EQUAL(curr->data.value, sorted_data.at(sorted_data.size() / 2).data.value);
     }
 
     //*************************************************************************
@@ -731,7 +740,7 @@ namespace
       auto item_idx = static_cast<int>(sorted_data_moveable.size() / 2);
       const ItemMNode root_item{std::move(sorted_data_moveable.at(item_idx))};
       CHECK_EQUAL(root_item.data.value, item_idx);
-      it = data0.end().get_child(false);
+      it = data0.get_root();
       CHECK(it.has_value());
       CHECK(&it == &root_item);
       verify_tree(data0);

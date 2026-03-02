@@ -515,7 +515,7 @@ namespace etl
         return etl::make_pair(ETL_NULLPTR, false);
       }
 
-      ETL_ASSERT_OR_RETURN(!result_link->is_linked(), ETL_ERROR(intrusive_avl_tree_value_is_already_linked));
+      ETL_ASSERT(!result_link->is_linked(), ETL_ERROR(intrusive_avl_tree_value_is_already_linked));
 
       // Link the new node.
       parent->link_child(result_link, is_right);
@@ -986,6 +986,26 @@ namespace etl
     const_iterator cend() const
     {
       return end();
+    }
+
+    //*************************************************************************
+    /// Gets root node (if any).
+    /// Normally is not needed unless advanced traversal is required.
+    /// Result iterator will be valueless (`has_value() == false`) if tree is empty.
+    //*************************************************************************
+    iterator get_root()
+    {
+      return iterator(base::get_root());
+    }
+
+    //*************************************************************************
+    /// Gets root node (if any).
+    /// Normally is not needed unless advanced traversal is required.
+    /// Result iterator will be valueless (`has_value() == false`) if tree is empty.
+    //*************************************************************************
+    const_iterator get_root() const
+    {
+      return const_iterator(base::get_root());
     }
 
     template <typename TCompare>
