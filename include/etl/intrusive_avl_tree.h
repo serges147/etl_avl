@@ -698,7 +698,6 @@ namespace etl
       reference operator*() const
       {
 #include "private/diagnostic_null_dereference_push.h"
-
         return *static_cast<pointer>(p_value);
 #include "private/diagnostic_pop.h"
       }
@@ -760,11 +759,6 @@ namespace etl
 
     private:
       explicit iterator(link_type* value)
-        : p_value(value)
-      {
-      }
-
-      explicit iterator(const link_type* value)
         : p_value(value)
       {
       }

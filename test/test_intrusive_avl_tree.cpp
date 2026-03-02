@@ -247,6 +247,17 @@ namespace
     }
 
     //*************************************************************************
+    TEST_FIXTURE(SetupFixture, test_constructor_with_bad_iterator)
+    {
+      auto action = [this]()
+      {
+        // Note end/begin order -> should throw!
+        DataNDC0 data0(sorted_data.end(), sorted_data.begin(), std::less<ItemNDCNode>());
+      };
+      CHECK_THROW(action(), etl::intrusive_avl_tree_iterator_exception);
+    }
+
+    //*************************************************************************
     TEST_FIXTURE(SetupFixture, test_empty_begin_end)
     {
       DataNDC0 data0;
@@ -392,12 +403,15 @@ namespace
       DataNDC0 data0(sorted_data.begin(), sorted_data.end(), std::less<ItemNDCNode>());
 
       auto iterator = data0.find(ItemNDCNode::always_before);
+      CHECK(iterator.has_value());
       CHECK(iterator == data0.end());
 
       iterator = data0.find(ItemNDCNode::always_after);
+      CHECK(iterator.has_value());
       CHECK(iterator == data0.end());
 
       iterator = data0.find(ItemNDCNode::CompareByValue{5});
+      CHECK(iterator.has_value());
       CHECK(iterator != data0.end());
       CHECK_EQUAL(iterator->data, sorted_data[5].data);
     }
@@ -408,13 +422,16 @@ namespace
       const DataNDC0 data0(sorted_data.begin(), sorted_data.end(), std::less<ItemNDCNode>());
 
       auto iterator = data0.find(ItemNDCNode::always_before);
+      CHECK(iterator.has_value());
       CHECK(iterator == data0.end());
 
       iterator = data0.find(ItemNDCNode::always_after);
+      CHECK(iterator.has_value());
       CHECK(iterator == data0.end());
 
       iterator = data0.find(ItemNDCNode::CompareByValue{5});
       CHECK(iterator != data0.end());
+      CHECK(iterator.has_value());
       CHECK_EQUAL(iterator->data, sorted_data[5].data);
     }
 
@@ -435,6 +452,7 @@ namespace
         verify_tree(data0);
 
         CHECK(it_mod.second);
+        CHECK(it_mod.first.has_value());
         CHECK(it_mod.first != data0.end());
         CHECK_EQUAL(&node0a, &it_mod.first);
       }
@@ -445,9 +463,24 @@ namespace
           ItemNDCNode::CompareByValue{0}, [&node0b] { return &node0b; });
 
         CHECK(!it_mod.second);
+        CHECK(it_mod.first.has_value());
         CHECK(it_mod.first != data0.end());
         CHECK_EQUAL(&node0a, &it_mod.first);
       }
+    }
+
+    //*************************************************************************
+    TEST_FIXTURE(SetupFixture, test_find_or_insert_null_factory)
+    {
+      DataNDC0 data0;
+
+      const auto it_mod = data0.find_or_insert(
+        ItemNDCNode::always_after, [] { return ETL_NULLPTR; });
+      CHECK(data0.empty());
+      verify_tree(data0);
+
+      CHECK(!it_mod.second);
+      CHECK(!it_mod.first.has_value());
     }
 
     //*************************************************************************
