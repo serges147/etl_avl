@@ -70,6 +70,20 @@ namespace etl
   };
 
   //***************************************************************************
+  /// Already exception for the intrusive_avl_tree.
+  ///\ingroup intrusive_avl_tree
+  //***************************************************************************
+  class intrusive_avl_tree_value_is_already_linked : public intrusive_avl_tree_exception
+  {
+  public:
+
+    intrusive_avl_tree_value_is_already_linked(const string_type file_name_, const numeric_type line_number_)
+      : intrusive_avl_tree_exception(ETL_ERROR_TEXT("intrusive_avl_tree:value is already linked", ETL_INTRUSIVE_AVL_TREE_FILE_ID"B"), file_name_, line_number_)
+    {
+    }
+  };
+
+  //***************************************************************************
   /// \ingroup intrusive_avl_tree
   /// Base for intrusive AVL tree. Stores elements derived from 'intrusive_avl_tree_base<ID>::link_type'.
   /// \tparam ID_ The link ID that the value is derived from.
@@ -105,15 +119,26 @@ namespace etl
       }
 #endif
 
+#if ETL_USING_CPP11
+      link_type(const link_type&) = delete;
+      link_type& operator=(const link_type& rhs) = delete;
+      link_type& operator=(link_type&& rhs) ETL_NOEXCEPT = delete;
+#endif
+
     private:
       friend class intrusive_avl_tree_base;
 
+#if ETL_USING_CPP11
+#else
       // Disable copy construction and assignment.
       link_type(const link_type&);
       link_type& operator=(const link_type& rhs);
-#if ETL_USING_CPP11
-      link_type& operator=(link_type&& rhs) ETL_NOEXCEPT;
 #endif
+
+      bool is_linked() const
+      {
+        return base::is_linked();
+      }
 
       bool is_origin() const
       {
@@ -483,16 +508,19 @@ namespace etl
 
       // Try to instantiate new node.
       TValue* const result = factory();
-      if (ETL_NULLPTR == result)
+      auto* const result_link = static_cast<link_type*>(result);
+      if ((ETL_NULLPTR == result) || (ETL_NULLPTR == result_link))
       {
         // Failed (or rejected)! The tree was not modified.
         return etl::make_pair(ETL_NULLPTR, false);
       }
 
-      // Link the new node.
-      parent->link_child(result, is_right);
+      ETL_ASSERT_OR_RETURN(!result_link->is_linked(), ETL_ERROR(intrusive_avl_tree_value_is_already_linked));
 
-      retrace_on_insert(result);
+      // Link the new node.
+      parent->link_child(result_link, is_right);
+
+      retrace_on_insert(result_link);
 
       // Successfully linked, so the tree was modified.
       return etl::make_pair(result, true);

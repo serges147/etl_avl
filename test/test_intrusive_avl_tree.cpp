@@ -31,6 +31,7 @@ SOFTWARE.
 #include "data.h"
 
 #include "etl/intrusive_avl_tree.h"
+#include "etl/optional.h"
 
 #include <array>
 #include <iostream>
@@ -71,8 +72,21 @@ namespace
     struct CompareByValue
     {
       int value;
+      etl::optional<etl::exception> excptn;
+
+      explicit CompareByValue(
+        const int value_,
+        const etl::optional<etl::exception>& excptn_ = etl::nullopt)
+        : value(value_)
+        , excptn(excptn_)
+      {}
+
       int operator ()(const ItemNDCNode& other) const
       {
+        if (excptn.has_value())
+        {
+          throw etl::exception(excptn.value());
+        }
         return value - other.data.value;
       }
     };
@@ -80,7 +94,8 @@ namespace
     static int always_before(const ItemNDCNode&) { return -1; }
 
     ItemNDC data;
-  };
+
+  };  // CompareByValue
 
   //***************************************************************************
   class ItemMNode : public SecondLink
@@ -436,6 +451,15 @@ namespace
     }
 
     //*************************************************************************
+    TEST_FIXTURE(SetupFixture, test_find_throwing)
+    {
+      const DataNDC0 data0(sorted_data.begin(), sorted_data.end(), std::less<ItemNDCNode>());
+
+      const ItemNDCNode::CompareByValue throwing_compare{0, etl::exception("13", __FILE__, __LINE__)};
+      CHECK_THROW(data0.find(throwing_compare), etl::exception);
+    }
+
+    //*************************************************************************
     TEST_FIXTURE(SetupFixture, test_find_or_insert)
     {
       DataNDC0 data0;
@@ -470,6 +494,20 @@ namespace
     }
 
     //*************************************************************************
+    TEST_FIXTURE(SetupFixture, test_find_or_insert_unsorted)
+    {
+      DataNDC0 data0;
+      verify_tree(data0);
+
+      for (auto& item: unsorted_data)
+      {
+        data0.find_or_insert(
+                  ItemNDCNode::CompareByValue{item.data.value}, [&item] { return &item; });
+        verify_tree(data0);
+      }
+    }
+
+    //*************************************************************************
     TEST_FIXTURE(SetupFixture, test_find_or_insert_null_factory)
     {
       DataNDC0 data0;
@@ -484,16 +522,70 @@ namespace
     }
 
     //*************************************************************************
-    TEST_FIXTURE(SetupFixture, test_find_or_insert_unsorted)
+    TEST_FIXTURE(SetupFixture, test_find_or_insert_already_linked)
     {
       DataNDC0 data0;
+
+      ItemNDCNode node0(0);
+
+      auto insert = [&]()
+      {
+        return data0.find_or_insert(ItemNDCNode::always_after, [&node0] { return &node0; });
+      };
+
+      auto it_mod = insert();
+      CHECK(!data0.empty());
       verify_tree(data0);
 
-      for (auto& item: unsorted_data)
+      // Insert the same node again -> should throw.
       {
-        data0.find_or_insert(
-                  ItemNDCNode::CompareByValue{item.data.value}, [&item] { return &item; });
+        CHECK_THROW(insert(), etl::intrusive_avl_tree_value_is_already_linked);
+        CHECK(!data0.empty());
         verify_tree(data0);
+      }
+
+      // But it's ok erase it first, and then reinsert.
+      {
+        data0.erase(it_mod.first);
+        it_mod = insert();
+
+        CHECK(it_mod.second);
+        CHECK(it_mod.first.has_value());
+        CHECK(it_mod.first != data0.end());
+        CHECK_EQUAL(&node0, &it_mod.first);
+      }
+    }
+
+    //*************************************************************************
+    TEST_FIXTURE(SetupFixture, test_find_or_insert_throwing)
+    {
+      DataNDC0 data0(sorted_data.begin(), sorted_data.end(), std::less<ItemNDCNode>());
+
+      // Try throwing factory.
+      {
+        auto throwing_action = [&]()
+        {
+          return data0.find_or_insert(ItemNDCNode::always_after, []() -> ItemNDCNode*
+          {
+            throw etl::exception("123", __FILE__, __LINE__);
+          });
+        };
+        CHECK_THROW(throwing_action(), etl::exception);
+        verify_tree(data0);
+        CHECK(std::equal(data0.begin(), data0.end(), sorted_data.begin()));
+      }
+
+      // Try throwing comparer.
+      {
+        auto throwing_action = [&]()
+        {
+          return data0.find_or_insert(
+            [](const ItemNDCNode&) -> int { throw etl::exception("321", __FILE__, __LINE__); },
+            []() -> ItemNDCNode* { return ETL_NULLPTR; });
+        };
+        CHECK_THROW(throwing_action(), etl::exception);
+        verify_tree(data0);
+        CHECK(std::equal(data0.begin(), data0.end(), sorted_data.begin()));
       }
     }
 
