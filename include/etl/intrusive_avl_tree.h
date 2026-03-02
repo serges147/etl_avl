@@ -183,15 +183,15 @@ namespace etl
         other.clear();
         other.etl_bf = 0;
 
-        if (nullptr != base::etl_parent)
+        if (ETL_NULLPTR != base::etl_parent)
         {
           get_parent()->link_child(this, is_right);
         }
-        if (nullptr != base::etl_left)
+        if (ETL_NULLPTR != base::etl_left)
         {
           get_left()->set_parent(this);
         }
-        if (nullptr != base::etl_right)
+        if (ETL_NULLPTR != base::etl_right)
         {
           get_right()->set_parent(this);
         }
