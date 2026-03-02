@@ -86,15 +86,34 @@ namespace etl
     /// Base for elements of this AVL tree.
     struct link_type : private etl::tree_link<ID_>
     {
+    private:
+      typedef etl::tree_link<ID_> base;
+
+    public:
       link_type()
-        : etl::tree_link<ID_>()
+        : base()
         , etl_bf(0)
       {
       }
 
+#if ETL_USING_CPP11
+      link_type(link_type&& other) ETL_NOEXCEPT
+        : base()
+        , etl_bf(0)
+      {
+        move_impl(other);
+      }
+#endif
+
     private:
-      typedef etl::tree_link<ID_> base;
       friend class intrusive_avl_tree_base;
+
+      // Disable copy construction and assignment.
+      link_type(const link_type&);
+      link_type& operator=(const link_type& rhs);
+#if ETL_USING_CPP11
+      link_type& operator=(link_type&& rhs) ETL_NOEXCEPT;
+#endif
 
       bool is_origin() const
       {
@@ -151,6 +170,31 @@ namespace etl
       link_type* get_right()
       {
         return static_cast<link_type*>(base::etl_right);
+      }
+
+      void move_impl(link_type& other)
+      {
+        const bool is_right = other.is_right_child();
+        base::etl_parent = other.etl_parent;
+        base::etl_left = other.etl_left;
+        base::etl_right = other.etl_right;
+        etl_bf = other.etl_bf;
+
+        other.clear();
+        other.etl_bf = 0;
+
+        if (nullptr != base::etl_parent)
+        {
+          get_parent()->link_child(this, is_right);
+        }
+        if (nullptr != base::etl_left)
+        {
+          get_left()->set_parent(this);
+        }
+        if (nullptr != base::etl_right)
+        {
+          get_right()->set_parent(this);
+        }
       }
 
       void rotate(const bool is_right)
@@ -593,6 +637,9 @@ namespace etl
     typedef value_type&       reference;
     typedef const value_type& const_reference;
     typedef size_t            size_type;
+#if ETL_USING_CPP11
+    typedef value_type&&      rvalue_reference;
+#endif
 
     //*************************************************************************
     /// iterator.

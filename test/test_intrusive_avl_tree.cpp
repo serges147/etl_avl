@@ -39,12 +39,14 @@ SOFTWARE.
 #include <string>
 #include <vector>
 
+typedef TestDataM<int> ItemM;
 typedef TestDataNDC<int> ItemNDC;
 
 namespace
 {
   typedef etl::intrusive_avl_tree_base<0>::link_type ZeroLink;
   typedef etl::intrusive_avl_tree_base<1>::link_type FirstLink;
+  typedef etl::intrusive_avl_tree_base<2>::link_type SecondLink;
 
   //***************************************************************************
   class ItemNDCNode : public ZeroLink, public FirstLink
@@ -81,9 +83,38 @@ namespace
   };
 
   //***************************************************************************
+  class ItemMNode : public SecondLink
+  {
+  public:
+
+    explicit ItemMNode(const int value)
+      : data(value)
+    {
+    }
+
+    friend bool operator <(const ItemMNode& lhs, const ItemMNode& rhs)
+    {
+      return lhs.data < rhs.data;
+    }
+
+    struct CompareByValue
+    {
+      int value;
+      int operator ()(const ItemMNode& other) const
+      {
+        return value - other.data.value;
+      }
+    };
+
+    ItemM data;
+  };
+
+  //***************************************************************************
   typedef etl::intrusive_avl_tree<ItemNDCNode> DataNDC0;
   typedef etl::intrusive_avl_tree<ItemNDCNode, 1> DataNDC1;
+  typedef etl::intrusive_avl_tree<ItemMNode, 2> DataM;
 
+  typedef std::vector<ItemMNode> InitialDataM;
   typedef std::vector<ItemNDCNode> InitialDataNDC;
 
   SUITE(test_intrusive_avl_tree)
@@ -93,6 +124,7 @@ namespace
     {
       InitialDataNDC sorted_data;
       InitialDataNDC unsorted_data;
+      InitialDataM sorted_data_moveable;
 
       SetupFixture()
       {
@@ -100,6 +132,7 @@ namespace
         for (int i = 0; i < 31; ++i)
         {
           sorted_data.emplace_back(i, i);
+          sorted_data_moveable.emplace_back(i);
         }
 
         constexpr std::array<size_t, 31> unsorted_order{
@@ -109,7 +142,7 @@ namespace
         unsorted_data.clear();
         for (const auto idx : unsorted_order)
         {
-          unsorted_data.emplace_back(sorted_data.at(idx));
+          unsorted_data.emplace_back(idx, idx);
         }
       }
 
@@ -548,6 +581,42 @@ namespace
 
         verify_tree(data0);
       }
+    }
+
+    //*************************************************************************
+    TEST_FIXTURE(SetupFixture, test_move_item)
+    {
+      const DataM data0(sorted_data_moveable.begin(), sorted_data_moveable.end(), std::less<ItemMNode>());
+      verify_tree(data0);
+
+      const ItemMNode min_item{std::move(sorted_data_moveable.front())};
+      CHECK(min_item.data.valid);
+      CHECK_FALSE(sorted_data_moveable.front().data.valid);
+      CHECK(min_item.data.value == 0);
+      auto it = data0.begin();
+      CHECK(&it == &min_item);
+      verify_tree(data0);
+
+      const ItemMNode max_item{std::move(sorted_data_moveable.back())};
+      CHECK(max_item.data.value == static_cast<int>(sorted_data_moveable.size() - 1));
+      it = --data0.end();
+      CHECK(&it == &max_item);
+      verify_tree(data0);
+
+      auto item_idx = static_cast<int>(sorted_data_moveable.size() / 2);
+      const ItemMNode root_item{std::move(sorted_data_moveable.at(item_idx))};
+      CHECK_EQUAL(root_item.data.value, item_idx);
+      it = data0.end().get_child(false);
+      CHECK(it.has_value());
+      CHECK(&it == &root_item);
+      verify_tree(data0);
+
+      item_idx = 11;
+      const ItemMNode item{std::move(sorted_data_moveable.at(item_idx))};
+      CHECK(item.data.value == item_idx);
+      it = data0.find(ItemMNode::CompareByValue{item_idx});
+      CHECK(&it == &item);
+      verify_tree(data0);
     }
   }
 
