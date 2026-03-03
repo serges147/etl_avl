@@ -131,8 +131,19 @@ namespace etl
       link_type& operator=(link_type&& rhs) ETL_NOEXCEPT = delete;
 #endif
 
+      ~link_type()
+      {
+        if (!is_origin() && is_linked())
+        {
+          // TODO: Uncomment for self-erasing.
+          // erase_impl(this);
+        }
+      }
+
     private:
       friend class intrusive_avl_tree_base;
+
+      int8_t etl_bf;  ///< Stores -1, 0 or +1 balancing factor.
 
 #if ETL_USING_CPP11
 #else
@@ -302,8 +313,6 @@ namespace etl
         }
       }
 
-      int8_t etl_bf;  ///< Stores -1, 0 or +1 balancing factor.
-
     };  // link_type
 
     //*************************************************************************
@@ -336,6 +345,7 @@ namespace etl
     //*************************************************************************
     ~intrusive_avl_tree_base()
     {
+      // TODO: Implement post order clearing of nodes.
     }
 
     link_type* get_root()
@@ -541,7 +551,7 @@ namespace etl
       return etl::make_pair(result, true);
     }
 
-    void erase_impl(link_type* const z_link)
+    static void erase_impl(link_type* const z_link)
     {
       link_type* parent = z_link->get_parent();
       bool is_right = z_link->is_right_child();
@@ -624,7 +634,7 @@ namespace etl
 
     };  // CompareFactory
 
-    void retrace_on_insert(link_type* curr)
+    static void retrace_on_insert(link_type* curr)
     {
       link_type* parent = curr->get_parent();
       while (!parent->is_origin())
@@ -644,7 +654,7 @@ namespace etl
       }
     }
 
-    void retrace_on_erase(link_type* parent, bool is_right)
+    static void retrace_on_erase(link_type* parent, bool is_right)
     {
       while (!parent->is_origin())
       {
