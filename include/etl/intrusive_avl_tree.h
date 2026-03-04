@@ -324,6 +324,42 @@ namespace etl
     }
 
     //*************************************************************************
+    /// Returns the number of elements.
+    /// Complexity: O(N).
+    ///
+    /// Use `empty` method (with O(1) complexity) if you don't really need its exact size.
+    //*************************************************************************
+    size_t size() const
+    {
+      size_t result = 0;
+
+#if ETL_USING_CPP11
+      auto counter = [&result](const link_type& link)
+      {
+        if (!link.is_origin())
+        {
+          result++;
+        }
+      };
+#else
+      struct
+      {
+        size_t& result_ref;
+        void operator()(const link_type& link)
+        {
+          if (!link.is_origin())
+          {
+            result_ref++;
+          }
+        }
+      } counter{result};
+#endif
+
+      visit_in_order_impl(&origin, false, counter);
+      return result;
+    }
+
+    //*************************************************************************
     /// Unlinks all current items, leaving this tree in the empty state.
     /// Complexity: O(N).
     /// Operation invalidates all existing iterator.
@@ -334,16 +370,29 @@ namespace etl
     //*************************************************************************
     void clear()
     {
+#if ETL_USING_CPP11
+      auto unlinker = [](link_type& link)
+      {
+        link.clear();
+        link.etl_bf = 0;
+      };
+#else
+      struct
+      {
+        void operator()(link_type& link) const
+        {
+          link.clear();
+          link.etl_bf = 0;
+        }
+      } unlinker{};
+#endif
+
       // No need to balance b/c everything will be unlinked.
       // Note that "post order" visitation is important -
       // it ensures that once a link is passed to the "visitor" lambda,
       // traversal won't use pointer to this link anymore,
       // so we could efficiently clear the link.
-      visit_post_order_impl(&origin, false, [](link_type* const curr)
-      {
-        curr->clear();
-        curr->etl_bf = 0;
-      });
+      visit_post_order_impl(&origin, false, unlinker);
     }
 
   protected:
@@ -359,7 +408,7 @@ namespace etl
     /// Move constructor.
     /// Complexity: O(1).
     //*************************************************************************
-    intrusive_avl_tree_base(intrusive_avl_tree_base&&) ETL_NOEXCEPT= default;
+    intrusive_avl_tree_base(intrusive_avl_tree_base&&) ETL_NOEXCEPT = default;
 #endif
 
     //*************************************************************************
@@ -462,7 +511,44 @@ namespace etl
     }
 
     template <typename TLink, typename Visitor>
-    static void visit_post_order_impl(TLink* curr, const bool is_reverse, const Visitor& visitor)
+    static void visit_in_order_impl(TLink* curr, const bool is_reverse, Visitor visitor)
+    {
+      TLink* prev = ETL_NULLPTR;
+      while (curr != ETL_NULLPTR)
+      {
+        TLink* next = curr->get_parent();
+        if (prev == next)
+        {
+          if (TLink* const child1 = curr->get_child(is_reverse))
+          {
+            next = child1;
+          }
+          else
+          {
+            visitor(*curr);
+
+            if (TLink* const child2 = curr->get_child(!is_reverse))
+            {
+              next = child2;
+            }
+          }
+        }
+        else if (prev == curr->get_child(is_reverse))
+        {
+          visitor(*curr);
+
+          if (TLink* const child2 = curr->get_child(!is_reverse))
+          {
+            next = child2;
+          }
+        }
+
+        prev = etl::exchange(curr, next);
+      }
+    }
+
+    template <typename TLink, typename Visitor>
+    static void visit_post_order_impl(TLink* curr, const bool is_reverse, Visitor visitor)
     {
       TLink* prev = ETL_NULLPTR;
       while (curr != ETL_NULLPTR)
@@ -480,7 +566,7 @@ namespace etl
           }
           else
           {
-            visitor(curr);
+            visitor(*curr);
           }
         }
         else if (prev == curr->get_child(is_reverse))
@@ -491,12 +577,12 @@ namespace etl
           }
           else
           {
-            visitor(curr);
+            visitor(*curr);
           }
         }
         else
         {
-          visitor(curr);
+          visitor(*curr);
         }
 
         prev = etl::exchange(curr, next);
@@ -544,10 +630,19 @@ namespace etl
       // Add all the elements.
       while (first != last)
       {
-        link_type&                              link = *first++;
-        auto&                                   value = static_cast<TValue&>(link);
+        link_type& link = *first++;
+        auto&      value = static_cast<TValue&>(link);
+#if ETL_USING_CPP11
+        find_or_insert_impl<TValue>(
+          [&value, &lessComp](const TValue& other)
+          {
+            return lessComp(value, other) ? -1 : +1;
+          },
+          [&value] { return &value; });
+#else
         const CompareFactory<TValue, TLessComp> compareFactory(value, lessComp);
         find_or_insert_impl<TValue>(compareFactory, compareFactory);
+#endif
       }
     }
 
@@ -670,7 +765,6 @@ namespace etl
     // Disable copy construction and assignment.
     intrusive_avl_tree_base(const intrusive_avl_tree_base&);
     intrusive_avl_tree_base& operator=(const intrusive_avl_tree_base& rhs);
-#endif
 
     template <typename TValue, typename TLessComp>
     struct CompareFactory
@@ -697,6 +791,7 @@ namespace etl
       }
 
     };  // CompareFactory
+#endif
 
     static void retrace_on_insert(link_type* curr)
     {
@@ -1093,7 +1188,7 @@ namespace etl
     /// Move constructor.
     /// Complexity: O(1).
     //*************************************************************************
-    intrusive_avl_tree(intrusive_avl_tree&&) ETL_NOEXCEPT= default;
+    intrusive_avl_tree(intrusive_avl_tree&&) ETL_NOEXCEPT = default;
 
     intrusive_avl_tree(const intrusive_avl_tree&) = delete;
     intrusive_avl_tree& operator=(const intrusive_avl_tree& rhs) = delete;

@@ -257,7 +257,9 @@ namespace
       DataNDC1 data1;
 
       CHECK(data0.empty());
+      CHECK_EQUAL(0, data0.size());
       CHECK(data1.empty());
+      CHECK_EQUAL(0, data1.size());
 
       CHECK(data0.begin() == data0.end());
       CHECK(data1.begin() == data1.end());
@@ -487,6 +489,7 @@ namespace
         const auto it_mod = data0.find_or_insert(
           ItemNDCNode::CompareByValue{0}, [&node0a] { return &node0a; });
         CHECK(!data0.empty());
+        CHECK_EQUAL(1, data0.size());
         verify_tree(data0);
 
         CHECK(it_mod.second);
@@ -529,6 +532,7 @@ namespace
       const auto it_mod = data0.find_or_insert(
         ItemNDCNode::always_after, [] { return ETL_NULLPTR; });
       CHECK(data0.empty());
+      CHECK_EQUAL(0, data0.size());
       verify_tree(data0);
 
       CHECK(!it_mod.second);
@@ -549,24 +553,30 @@ namespace
 
       auto it_mod = insert();
       CHECK(!data0.empty());
+      CHECK_EQUAL(1, data0.size());
       verify_tree(data0);
 
       // Insert the same node again -> should throw.
       {
         CHECK_THROW(insert(), etl::intrusive_avl_tree_value_is_already_linked);
         CHECK(!data0.empty());
+        CHECK_EQUAL(1, data0.size());
         verify_tree(data0);
       }
 
-      // But it's ok erase it first, and then reinsert.
+      // But it's ok to erase it first, and then reinsert.
       {
         data0.erase(it_mod.first);
+        CHECK_EQUAL(0, data0.size());
+
         it_mod = insert();
+        CHECK_EQUAL(1, data0.size());
 
         CHECK(it_mod.second);
         CHECK(it_mod.first.has_value());
         CHECK(it_mod.first != data0.end());
         CHECK_EQUAL(&node0, &it_mod.first);
+        verify_tree(data0);
       }
     }
 
@@ -574,6 +584,7 @@ namespace
     TEST_FIXTURE(SetupFixture, test_find_or_insert_throwing)
     {
       DataNDC0 data0(sorted_data.begin(), sorted_data.end(), std::less<ItemNDCNode>());
+      CHECK_EQUAL(sorted_data.size(), data0.size());
 
       // Try throwing factory.
       {
@@ -585,6 +596,7 @@ namespace
           });
         };
         CHECK_THROW(throwing_action(), etl::exception);
+        CHECK_EQUAL(sorted_data.size(), data0.size());
         verify_tree(data0);
         CHECK(std::equal(data0.begin(), data0.end(), sorted_data.begin()));
       }
@@ -598,6 +610,7 @@ namespace
             []() -> ItemNDCNode* { return ETL_NULLPTR; });
         };
         CHECK_THROW(throwing_action(), etl::exception);
+        CHECK_EQUAL(sorted_data.size(), data0.size());
         verify_tree(data0);
         CHECK(std::equal(data0.begin(), data0.end(), sorted_data.begin()));
       }
@@ -609,12 +622,15 @@ namespace
       DataNDC0 data0(sorted_data.begin(), sorted_data.end(), std::less<ItemNDCNode>());
       verify_tree(data0);
 
+      size_t expected_size = sorted_data.size();
       for (const auto& item: unsorted_data)
       {
         const DataNDC0::iterator it = data0.find(ItemNDCNode::CompareByValue{item.data.index});
         CHECK(it != data0.end());
 
+        CHECK_EQUAL(expected_size, data0.size());
         const DataNDC0::iterator next_it = data0.erase(it);
+        CHECK_EQUAL(--expected_size, data0.size());
         verify_tree(data0);
         CHECK(next_it.has_value());
         if (next_it != data0.end())
@@ -632,12 +648,15 @@ namespace
       DataNDC0 data0(sorted_data.begin(), sorted_data.end(), std::less<ItemNDCNode>());
       verify_tree(data0);
 
+      size_t expected_size = sorted_data.size();
       for (const auto& item: unsorted_data)
       {
         const DataNDC0::const_iterator it = data0.find(ItemNDCNode::CompareByValue{item.data.index});
         CHECK(it != data0.end());
 
+        CHECK_EQUAL(expected_size, data0.size());
         const DataNDC0::iterator next_it = data0.erase(it);
+        CHECK_EQUAL(--expected_size, data0.size());
         verify_tree(data0);
         CHECK(next_it.has_value());
         if (next_it != data0.end())
@@ -734,12 +753,14 @@ namespace
       CHECK(min_item.data.value == 0);
       auto it = data0.begin();
       CHECK(&it == &min_item);
+      CHECK_EQUAL(sorted_data_moveable.size(), data0.size());
       verify_tree(data0);
 
       const ItemMNode max_item{std::move(sorted_data_moveable.back())};
       CHECK(max_item.data.value == static_cast<int>(sorted_data_moveable.size() - 1));
       it = --data0.end();
       CHECK(&it == &max_item);
+      CHECK_EQUAL(sorted_data_moveable.size(), data0.size());
       verify_tree(data0);
 
       auto item_idx = static_cast<int>(sorted_data_moveable.size() / 2);
@@ -748,6 +769,7 @@ namespace
       it = data0.get_root();
       CHECK(it.has_value());
       CHECK(&it == &root_item);
+      CHECK_EQUAL(sorted_data_moveable.size(), data0.size());
       verify_tree(data0);
 
       item_idx = 11;
@@ -755,6 +777,7 @@ namespace
       CHECK(item.data.value == item_idx);
       it = data0.find(ItemMNode::CompareByValue{item_idx});
       CHECK(&it == &item);
+      CHECK_EQUAL(sorted_data_moveable.size(), data0.size());
       verify_tree(data0);
     }
 
@@ -763,6 +786,9 @@ namespace
     {
       DataM data0a(sorted_data_moveable.begin(), sorted_data_moveable.end(), std::less<ItemMNode>());
       const DataM data0b(std::move(data0a));
+      CHECK(data0a.empty());
+      CHECK_EQUAL(0, data0a.size());
+      CHECK_EQUAL(sorted_data_moveable.size(), data0b.size());
       verify_tree(data0b);
       CHECK(std::equal(data0b.begin(), data0b.end(), sorted_data_moveable.begin()));
     }
@@ -771,9 +797,11 @@ namespace
     TEST_FIXTURE(SetupFixture, test_clear)
     {
       DataM data0a(sorted_data_moveable.begin(), sorted_data_moveable.end(), std::less<ItemMNode>());
+      CHECK_EQUAL(sorted_data_moveable.size(), data0a.size());
       data0a.clear();
-      verify_tree(data0a);
       CHECK(data0a.empty());
+      CHECK_EQUAL(0, data0a.size());
+      verify_tree(data0a);
     }
   }
 
