@@ -135,8 +135,7 @@ namespace etl
       {
         if (!is_origin() && is_linked())
         {
-          // TODO: Uncomment for self-erasing.
-          // erase_impl(this);
+          erase_impl(this);
         }
       }
 
@@ -324,6 +323,29 @@ namespace etl
       return get_root() == ETL_NULLPTR;
     }
 
+    //*************************************************************************
+    /// Unlinks all current items, leaving this tree in the empty state.
+    /// Complexity: O(N).
+    /// Operation invalidates all existing iterator.
+    ///
+    /// Note that the same "clear all" effect could be achieved by using `erase`
+    /// method for each item, but b/c of intermediate tree rebalancing
+    /// complexity will be higher - O(N*log(N)).
+    //*************************************************************************
+    void clear()
+    {
+      // No need to balance b/c everything will be unlinked.
+      // Note that "post order" visitation is important -
+      // it ensures that once a link is passed to the "visitor" lambda,
+      // traversal won't use pointer to this link anymore,
+      // so we could efficiently clear the link.
+      visit_post_order_impl(&origin, false, [](link_type* const curr)
+      {
+        curr->clear();
+        curr->etl_bf = 0;
+      });
+    }
+
   protected:
     //*************************************************************************
     /// Default constructor.
@@ -345,7 +367,7 @@ namespace etl
     //*************************************************************************
     ~intrusive_avl_tree_base()
     {
-      // TODO: Implement post order clearing of nodes.
+      clear();
     }
 
     link_type* get_root()
@@ -437,6 +459,48 @@ namespace etl
         curr = curr->get_parent();
       }
       return curr->is_origin() ? curr : curr->get_parent();
+    }
+
+    template <typename TLink, typename Visitor>
+    static void visit_post_order_impl(TLink* curr, const bool is_reverse, const Visitor& visitor)
+    {
+      TLink* prev = ETL_NULLPTR;
+      while (curr != ETL_NULLPTR)
+      {
+        TLink* next = curr->get_parent();
+        if (prev == next)
+        {
+          if (TLink* const child1 = curr->get_child(is_reverse))
+          {
+            next = child1;
+          }
+          else if (TLink* const child2 = curr->get_child(!is_reverse))
+          {
+            next = child2;
+          }
+          else
+          {
+            visitor(curr);
+          }
+        }
+        else if (prev == curr->get_child(is_reverse))
+        {
+          if (TLink* const child2 = curr->get_child(!is_reverse))
+          {
+            next = child2;
+          }
+          else
+          {
+            visitor(curr);
+          }
+        }
+        else
+        {
+          visitor(curr);
+        }
+
+        prev = etl::exchange(curr, next);
+      }
     }
 
     static int8_t get_balance_factor_impl(const link_type* const curr)
@@ -1211,6 +1275,7 @@ namespace etl
     /// Operation invalidates any existing iterator to the same item,
     /// but it does NOT affect any other iterators.
     /// Returns iterator to the next tree node (after the erased one).
+    /// Use `clear` method if you need erase all items.
     //*************************************************************************
     iterator erase(const_iterator position)
     {

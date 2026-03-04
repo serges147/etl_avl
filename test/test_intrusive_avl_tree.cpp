@@ -766,6 +766,15 @@ namespace
       verify_tree(data0b);
       CHECK(std::equal(data0b.begin(), data0b.end(), sorted_data_moveable.begin()));
     }
+
+    //*************************************************************************
+    TEST_FIXTURE(SetupFixture, test_clear)
+    {
+      DataM data0a(sorted_data_moveable.begin(), sorted_data_moveable.end(), std::less<ItemMNode>());
+      data0a.clear();
+      verify_tree(data0a);
+      CHECK(data0a.empty());
+    }
   }
 
 }  // namespace
