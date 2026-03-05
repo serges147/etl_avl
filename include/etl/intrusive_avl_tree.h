@@ -133,8 +133,14 @@ namespace etl
 
       ~link_type()
       {
+        // Remove only real and still linked items.
+        // Tree itself uses this `link_type` for its `origin` artificial item,
+        // but you can't (and there is no need to) erase it.
         if (!is_origin() && is_linked())
         {
+          // We can't just remove item (by simple rewiring of links at parent and children)
+          // b/c its former "owner" tree has to be rebalanced after the removal -
+          // hence the full-blown erasing which might rotate the tree as necessary.
           erase_impl(this);
         }
       }
@@ -352,7 +358,7 @@ namespace etl
             result_ref++;
           }
         }
-      } counter{result};
+      } counter = {result};
 #endif
 
       visit_in_order_impl(&origin, false, counter);
@@ -384,7 +390,7 @@ namespace etl
           link.clear();
           link.etl_bf = 0;
         }
-      } unlinker{};
+      } unlinker;
 #endif
 
       // No need to balance b/c everything will be unlinked.
@@ -412,10 +418,14 @@ namespace etl
 #endif
 
     //*************************************************************************
-    /// Destructor
+    /// Destructor.
+    /// Complexity: O(N).
     //*************************************************************************
     ~intrusive_avl_tree_base()
     {
+      // It's important to clear, so that none of the former (but still alive) items
+      // stay linked to this tree (neither directly at the root item,
+      // nor transitively via "parent" links from leaf items up to the origin).
       clear();
     }
 
@@ -1182,6 +1192,12 @@ namespace etl
     {
       base::template assign_impl<value_type>(first, last, lessComp);
     }
+
+    //*************************************************************************
+    /// Destructor.
+    /// Complexity: O(N).
+    //*************************************************************************
+    ~intrusive_avl_tree() = default;
 
 #if ETL_USING_CPP11
     //*************************************************************************
