@@ -203,8 +203,8 @@ namespace
       etl::string<100> s;
 
       CHECK_EQUAL("1.0", test_format(s, "{}", 1.0f));
-      CHECK_EQUAL("1.234567", test_format(s, "{}", 1.234567f));
-      CHECK_EQUAL("1.234567", test_format(s, "{}", 1.2345678f));
+      CHECK_EQUAL("1.234567", test_format(s, "{}", 1.2345674f));
+      CHECK_EQUAL("1.234568", test_format(s, "{}", 1.2345676f));
       CHECK_EQUAL("1.125", test_format(s, "{}", 1.125f));
     }
 
@@ -214,8 +214,8 @@ namespace
       etl::string<100> s;
 
       CHECK_EQUAL("1.0", test_format(s, "{}", 1.0));
-      CHECK_EQUAL("1.234564", test_format(s, "{}", 1.234564));
-      CHECK_EQUAL("1.234567", test_format(s, "{}", 1.2345678));
+      CHECK_EQUAL("1.234567", test_format(s, "{}", 1.234567499));
+      CHECK_EQUAL("1.234568", test_format(s, "{}", 1.234567501));
       CHECK_EQUAL("1.5", test_format(s, "{}", 1.5));
     }
 
@@ -227,7 +227,7 @@ namespace
       CHECK_EQUAL("1.0", test_format(s, "{}", 1.0l));
       auto& result = test_format(s, "{}", 1.234567l);
       CHECK("1.234567" == result || "1.234566" == result);
-      CHECK_EQUAL("1.234567", test_format(s, "{}", 1.2345678l));
+      CHECK_EQUAL("1.234568", test_format(s, "{}", 1.2345678l));
       CHECK_EQUAL("1.25", test_format(s, "{}", 1.25l));
     }
 
@@ -261,7 +261,7 @@ namespace
       CHECK_EQUAL("inf", test_format(s, "{:g}", INFINITY));
       CHECK_EQUAL("INF", test_format(s, "{:0.3G}", INFINITY));
       CHECK_EQUAL("0x1.8p+0", test_format(s, "{:a}", 1.5f));
-      CHECK_EQUAL("0X1.4CCCCCCCCCP+0", test_format(s, "{:A}", 1.3l));
+      CHECK_EQUAL("0X1.4CCCCCCCCDP+0", test_format(s, "{:A}", 1.3l));
       CHECK_EQUAL("0x2.49fp+4", test_format(s, "{:a}", 150000.0));
       CHECK_EQUAL("0x1.92a738p-5", test_format(s, "{:a}", 0.0000015f));
       CHECK_EQUAL("0x1.6345785d8ap+e", test_format(s, "{:a}", 100000000000000000.l));

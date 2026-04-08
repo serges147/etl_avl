@@ -1047,13 +1047,13 @@ namespace etl
       if (integral < 0.0)
       {
         sign           = true;
-        fractional_int = static_cast<unsigned long long int>(-fractional * pow(10., fractional_decimals));
+        fractional_int = static_cast<unsigned long long int>(round(-fractional * pow(static_cast<T>(10), fractional_decimals)));
         integral_int   = static_cast<unsigned long long int>(-integral);
       }
       else
       {
         sign           = false;
-        fractional_int = static_cast<unsigned long long int>(fractional * pow(10., fractional_decimals));
+        fractional_int = static_cast<unsigned long long int>(round(fractional * pow(static_cast<T>(10), fractional_decimals)));
         integral_int   = static_cast<unsigned long long int>(integral);
       }
 
@@ -1095,13 +1095,13 @@ namespace etl
       if (integral < 0.0)
       {
         sign           = true;
-        fractional_int = static_cast<unsigned long long int>(-fractional * pow(static_cast<T>(0x10), fractional_decimals));
+        fractional_int = static_cast<unsigned long long int>(round(-fractional * pow(static_cast<T>(0x10), fractional_decimals)));
         integral_int   = static_cast<unsigned long long int>(-integral);
       }
       else
       {
         sign           = false;
-        fractional_int = static_cast<unsigned long long int>(fractional * pow(static_cast<T>(0x10), fractional_decimals));
+        fractional_int = static_cast<unsigned long long int>(round(fractional * pow(static_cast<T>(0x10), fractional_decimals)));
         integral_int   = static_cast<unsigned long long int>(integral);
       }
 
@@ -1157,13 +1157,13 @@ namespace etl
       if (integral < 0.0)
       {
         sign           = true;
-        fractional_int = static_cast<unsigned long long int>(-fractional * pow(10., fractional_decimals));
+        fractional_int = static_cast<unsigned long long int>(round(-fractional * pow(static_cast<T>(10), fractional_decimals)));
         integral_int   = static_cast<unsigned long long int>(-integral);
       }
       else
       {
         sign           = false;
-        fractional_int = static_cast<unsigned long long int>(fractional * pow(10., fractional_decimals));
+        fractional_int = static_cast<unsigned long long int>(round(fractional * pow(static_cast<T>(10), fractional_decimals)));
         integral_int   = static_cast<unsigned long long int>(integral);
       }
 
@@ -1194,13 +1194,13 @@ namespace etl
       if (integral < 0.0)
       {
         sign           = true;
-        fractional_int = static_cast<unsigned long long int>(-fractional * pow(10., fractional_decimals));
+        fractional_int = static_cast<unsigned long long int>(round(-fractional * pow(static_cast<T>(10), fractional_decimals)));
         integral_int   = static_cast<unsigned long long int>(-integral);
       }
       else
       {
         sign           = false;
-        fractional_int = static_cast<unsigned long long int>(fractional * pow(10., fractional_decimals));
+        fractional_int = static_cast<unsigned long long int>(round(fractional * pow(static_cast<T>(10), fractional_decimals)));
         integral_int   = static_cast<unsigned long long int>(integral);
       }
 
