@@ -1355,7 +1355,10 @@ namespace etl
       {
         ETL_ASSERT(has_value(), ETL_ERROR(intrusive_avl_tree_iterator_exception));
 
+#include "private/diagnostic_null_dereference_push.h"
+
         return *static_cast<const_pointer>(p_value);
+#include "private/diagnostic_pop.h"
       }
 
       //*************************************************************************
@@ -1463,7 +1466,7 @@ namespace etl
     /// On success, all inserted items (except possible duplicated, see below comparator description) will be linked.
     ///
     /// The binary comparator should accept two `const value_type&` arguments (aka `lhs` and `rhs`),
-    /// and return integer result (aka `lhs - rhs` "substraction" result):
+    /// and return integer result (aka `lhs - rhs` "subtraction" result):
     /// - `>0` if the `lhs` is "greater" than the `rhs`
     /// - `0` if the `lhs` is "equal" to the `rhs`
     /// - `<0` if the `lhs` is "smaller" than the `rhs`
