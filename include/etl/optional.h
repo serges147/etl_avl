@@ -2153,13 +2153,13 @@ namespace etl
   //***************************************************************************
   template <typename T, typename U = T, ETL_OPTIONAL_ENABLE_CPP14>
   ETL_CONSTEXPR14 etl::optional<typename etl::decay<T>::type> make_optional(T&& value) //
-    ETL_NOEXCEPT_IF((etl::is_nothrow_constructible<T, T&&>::value))
+    ETL_NOEXCEPT_IF((etl::is_nothrow_constructible<typename etl::decay<T>::type, T&&>::value))
   {
     return etl::optional<typename etl::decay<T>::type>(etl::forward<T>(value));
   }
   template <typename T, typename U = T, ETL_OPTIONAL_ENABLE_CPP20_STL>
   ETL_CONSTEXPR20_STL etl::optional<typename etl::decay<T>::type> make_optional(T&& value) //
-    ETL_NOEXCEPT_IF((etl::is_nothrow_constructible<T, T&&>::value))
+    ETL_NOEXCEPT_IF((etl::is_nothrow_constructible<typename etl::decay<T>::type, T&&>::value))
   {
     return etl::optional<typename etl::decay<T>::type>(etl::forward<T>(value));
   }
@@ -2176,7 +2176,7 @@ namespace etl
   ETL_CONSTEXPR14 etl::optional<T> make_optional(Args&&... args)                                     //
     ETL_NOEXCEPT_IF((etl::is_nothrow_constructible<T, Args...>::value))
   {
-    return etl::optional<typename etl::decay<T>::type>(etl::in_place_t{}, etl::forward<Args>(args)...);
+    return etl::optional<T>(etl::in_place_t{}, etl::forward<Args>(args)...);
   }
   template <typename T, typename... Args,                                                      //
             typename etl::enable_if< etl::is_constructible<T, Args...>::value, int>::type = 0, //
@@ -2184,7 +2184,7 @@ namespace etl
   ETL_CONSTEXPR20_STL etl::optional<T> make_optional(Args&&... args) //
     ETL_NOEXCEPT_IF((etl::is_nothrow_constructible<T, Args...>::value))
   {
-    return etl::optional<typename etl::decay<T>::type>(etl::in_place_t{}, etl::forward<Args>(args)...);
+    return etl::optional<T>(etl::in_place_t{}, etl::forward<Args>(args)...);
   }
 
   #if ETL_HAS_INITIALIZER_LIST
@@ -2200,7 +2200,7 @@ namespace etl
   ETL_CONSTEXPR14 etl::optional<T> make_optional(std::initializer_list<TL> ilist, Args&&... args)
     ETL_NOEXCEPT_IF((etl::is_nothrow_constructible<T, std::initializer_list<TL>&, Args...>::value))
   {
-    return etl::optional<typename etl::decay<T>::type>(etl::in_place_t{}, ilist, etl::forward<Args>(args)...);
+    return etl::optional<T>(etl::in_place_t{}, ilist, etl::forward<Args>(args)...);
   }
   template <typename T, typename TL, typename... Args,                                                                     //
             typename etl::enable_if< etl::is_constructible<T, std::initializer_list<TL>&, Args...>::value, int>::type = 0, //
@@ -2208,7 +2208,7 @@ namespace etl
   ETL_CONSTEXPR20_STL etl::optional<T> make_optional(std::initializer_list<TL> ilist, Args&&... args)
     ETL_NOEXCEPT_IF((etl::is_nothrow_constructible<T, std::initializer_list<TL>&, Args...>::value))
   {
-    return etl::optional<typename etl::decay<T>::type>(etl::in_place_t{}, ilist, etl::forward<Args>(args)...);
+    return etl::optional<T>(etl::in_place_t{}, ilist, etl::forward<Args>(args)...);
   }
   #endif
 #else

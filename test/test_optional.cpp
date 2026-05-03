@@ -1303,8 +1303,8 @@ namespace
 
     TEST(test_make_optional_2_lvalue)
     {
-      std::string               test_value("TEST");
-      const etl::optional<Data> opt = etl::make_optional<Data>(test_value);
+      std::string test_value("TEST");
+      const auto  opt = etl::make_optional<const Data>(test_value);
       CHECK_TRUE(opt.has_value());
       CHECK_EQUAL(test_value, opt.value().value);
     }
@@ -1327,9 +1327,9 @@ namespace
 
     TEST(test_make_optional_3)
     {
-      int                         test_value1(1);
-      const int                   test_value2(2);
-      const etl::optional<TestIL> opt = etl::make_optional<TestIL>({10, 11, 12}, test_value1, test_value2, 3);
+      int        test_value1(1);
+      const int  test_value2(2);
+      const auto opt = etl::make_optional<const TestIL>({10, 11, 12}, test_value1, test_value2, 3);
       CHECK_TRUE(opt.has_value());
       CHECK_EQUAL(10, opt->arr[0]);
       CHECK_EQUAL(11, opt->arr[1]);
@@ -1523,16 +1523,30 @@ namespace
     TEST(test_make_optional_nothrow)
     {
       // make_optional #1
-      static_assert(noexcept(etl::make_optional(NothrowAtAll{})), "make_optional(NothrowAtAll) should be nothrow");
-      static_assert(!noexcept(etl::make_optional(ThrowingAll{})), "make_optional(ThrowingAll) should NOT be nothrow");
+      {
+        NothrowAtAll nothrowAtAll{};
+        static_assert(noexcept(etl::make_optional(nothrowAtAll)), "make_optional(NothrowAtAll&) should be nothrow");
+        static_assert(noexcept(etl::make_optional(std::move(nothrowAtAll))), "make_optional(NothrowAtAll&&) should be nothrow");
+        ThrowingAll throwingAll{};
+        static_assert(!noexcept(etl::make_optional(throwingAll)), "make_optional(ThrowingAll&) should NOT be nothrow");
+        static_assert(!noexcept(etl::make_optional(std::move(throwingAll))), "make_optional(ThrowingAll&&) should NOT be nothrow");
+      }
 
       // make_optional #2
-      static_assert(noexcept(etl::make_optional<NothrowAtAll>()), "make_optional<NothrowAtAll>() should be nothrow");
-      static_assert(!noexcept(etl::make_optional<ThrowingAll>()), "make_optional<ThrowingAll>() should NOT be nothrow");
+      {
+        static_assert(noexcept(etl::make_optional<NothrowAtAll>()), "make_optional<NothrowAtAll>() should be nothrow");
+        static_assert(noexcept(etl::make_optional<const NothrowAtAll>()), "make_optional<const NothrowAtAll>() should be nothrow");
+        static_assert(!noexcept(etl::make_optional<ThrowingAll>()), "make_optional<ThrowingAll>() should NOT be nothrow");
+        static_assert(!noexcept(etl::make_optional<const ThrowingAll>()), "make_optional<const ThrowingAll>() should NOT be nothrow");
+      }
 
       // make_optional #3
-      static_assert(noexcept(etl::make_optional<NothrowAtAll>({1, 2, 3})), "make_optional<NothrowAtAll>(1,2,3) should be nothrow");
-      static_assert(!noexcept(etl::make_optional<ThrowingAll>({1, 2, 3})), "make_optional<ThrowingAll>({1,2,3}) should NOT be nothrow");
+      {
+        static_assert(noexcept(etl::make_optional<NothrowAtAll>({1, 2, 3})), "make_optional<NothrowAtAll>(1,2,3) should be nothrow");
+        static_assert(noexcept(etl::make_optional<const NothrowAtAll>({1, 2, 3})), "make_optional<const NothrowAtAll>(1,2,3) should be nothrow");
+        static_assert(!noexcept(etl::make_optional<ThrowingAll>({1, 2, 3})), "make_optional<ThrowingAll>({1,2,3}) should NOT be nothrow");
+        static_assert(!noexcept(etl::make_optional<const ThrowingAll>({1, 2, 3})), "make_optional<const ThrowingAll>({1,2,3}) should NOT be nothrow");
+      }
     }
 #endif
   }
