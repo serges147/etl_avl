@@ -40,7 +40,6 @@ SOFTWARE.
 #include "debug_count.h"
 #include "error_handler.h"
 #include "exception.h"
-#include "functional.h"
 #include "initializer_list.h"
 #include "iterator.h"
 #include "memory.h"
@@ -1124,17 +1123,6 @@ namespace etl
     pointer p_end;    ///< Pointer to one past the last element in the buffer.
 
   private:
-
-    //*********************************************************************
-    /// Create a new element with a default value at the back.
-    //*********************************************************************
-    void create_back()
-    {
-      etl::create_value_at(p_end);
-      ETL_INCREMENT_DEBUG_COUNT;
-
-      ++p_end;
-    }
 
     //*********************************************************************
     /// Create a new element with a value at the back

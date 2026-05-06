@@ -42,7 +42,6 @@ SOFTWARE.
 
 #include "private/addressof.h"
 
-#include <assert.h>
 #include <string.h>
 
 #if defined(ETL_IN_UNIT_TEST) || ETL_USING_STL
@@ -795,12 +794,8 @@ namespace etl
   template <typename TInputIterator, typename TSize, typename TOutputIterator>
   TOutputIterator uninitialized_move_n(TInputIterator i_begin, TSize n, TOutputIterator o_begin)
   {
-      // Move not supported. Defer to copy.
-  #if ETL_USING_CPP11
-    return std::uninitialized_copy_n(i_begin, n, o_begin);
-  #else
+    // Move not supported. Defer to copy.
     return etl::uninitialized_copy_n(i_begin, n, o_begin);
-  #endif
   }
 
   //*****************************************************************************
@@ -814,12 +809,8 @@ namespace etl
   {
     count += TCounter(n);
 
-      // Move not supported. Defer to copy.
-  #if ETL_USING_CPP11
-    return std::uninitialized_copy_n(i_begin, n, o_begin);
-  #else
+    // Move not supported. Defer to copy.
     return etl::uninitialized_copy_n(i_begin, n, o_begin);
-  #endif
   }
 #endif
 
@@ -2643,6 +2634,14 @@ namespace etl
     {
       *p++ = 0;
     }
+
+    // Prevent the compiler from optimising away the volatile stores
+    // as dead stores (observed with GCC -O3 in C++23 mode).
+#if defined(ETL_COMPILER_GCC) || defined(ETL_COMPILER_CLANG)
+    __asm__ __volatile__("" : : : "memory");
+#elif defined(ETL_COMPILER_MICROSOFT)
+    _ReadWriteBarrier();
+#endif
   }
 
   //*****************************************************************************
